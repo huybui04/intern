@@ -1,0 +1,23 @@
+import { Router } from "express";
+import {
+  register,
+  login,
+  refreshToken,
+  requestPasswordReset,
+} from "../controllers/auth.controller";
+import { authenticateToken } from "../middlewares/auth.middleware";
+
+const authRouter = Router();
+
+// Public routes
+authRouter.post("/register", register);
+authRouter.post("/login", login);
+authRouter.post("/refresh-token", refreshToken);
+authRouter.post("/forgot-password", requestPasswordReset);
+
+// Protected routes
+authRouter.post("/logout", authenticateToken, (req, res) => {
+  res.status(200).json({ message: "Logged out successfully" });
+});
+
+export default authRouter;

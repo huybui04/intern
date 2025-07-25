@@ -1,0 +1,65 @@
+import { Router } from "express";
+import {
+  createAssignment,
+  getAssignmentById,
+  getAssignmentsByCourse,
+  updateAssignment,
+  deleteAssignment,
+  publishAssignment,
+  submitAssignment,
+  getStudentSubmission,
+  getStudentSubmissions,
+  getAssignmentSubmissions,
+  gradeSubmission,
+  autoGradeSubmission,
+} from "../controllers/assignment.controller";
+import { authenticateToken } from "../middlewares/auth.middleware";
+import {
+  requireInstructor,
+  requireStudent,
+} from "../middlewares/roles.middleware";
+
+const assignmentRouter = Router();
+
+// Public routes
+assignmentRouter.get("/:id", getAssignmentById);
+assignmentRouter.get("/course/:courseId", getAssignmentsByCourse);
+
+// Protected routes
+assignmentRouter.use(authenticateToken);
+
+// Instructor routes
+assignmentRouter.post("/", requireInstructor, createAssignment);
+assignmentRouter.put("/:id", requireInstructor, updateAssignment);
+assignmentRouter.delete("/:id", requireInstructor, deleteAssignment);
+assignmentRouter.patch("/:id/publish", requireInstructor, publishAssignment);
+assignmentRouter.get(
+  "/:id/submissions",
+  requireInstructor,
+  getAssignmentSubmissions
+);
+assignmentRouter.put(
+  "/submissions/:submissionId/grade",
+  requireInstructor,
+  gradeSubmission
+);
+assignmentRouter.put(
+  "/submissions/:submissionId/auto-grade",
+  requireInstructor,
+  autoGradeSubmission
+);
+
+// Student routes
+assignmentRouter.post("/:id/submit", requireStudent, submitAssignment);
+assignmentRouter.get(
+  "/:id/my-submission",
+  requireStudent,
+  getStudentSubmission
+);
+assignmentRouter.get(
+  "/student/my-submissions",
+  requireStudent,
+  getStudentSubmissions
+);
+
+export default assignmentRouter;
