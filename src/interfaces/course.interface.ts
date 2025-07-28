@@ -1,4 +1,5 @@
 import { Document, Types } from "mongoose";
+import { IPagination } from "./pagination.interface";
 
 export interface Course extends Document {
   title: string;
@@ -35,6 +36,20 @@ export interface UpdateCourseInput {
   price?: number;
   maxStudents?: number;
   isPublished?: boolean;
+}
+
+// Chuẩn hóa input cho ag-Grid query
+export interface CourseQueryInput extends IPagination {
+  filterModel?: any;
+  sortModel?: any[];
+  startRow?: number;
+  endRow?: number;
+  instructorId?: string;
+}
+
+export interface CourseQueryResult {
+  rowData: Course[];
+  rowCount: number;
 }
 
 export interface CourseEnrollment extends Document {

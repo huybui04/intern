@@ -1,14 +1,10 @@
 import { Request, Response } from "express";
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "../shared/constants";
-import { IPagination } from "../interfaces/pagination.interface";
 import { CourseService } from "../services/course.service";
 import {
   CreateCourseInput,
   UpdateCourseInput,
 } from "../interfaces/course.interface";
 import { AuthRequest } from "../middlewares/auth.middleware";
-import { IFilter } from "../interfaces/filter.interface";
-import { ISort } from "../interfaces/sort.interface";
 
 export const createCourse = async (
   req: AuthRequest,
@@ -37,44 +33,18 @@ export const getAllCourses = async (
   res: Response
 ): Promise<void> => {
   try {
-    let filters: IFilter[] = [];
-    let sorts: ISort[] = [];
-    let page = DEFAULT_PAGE;
-    let pageSize = DEFAULT_PAGE_SIZE;
+    const { filterModel, sortModel, startRow, endRow } = req.body;
 
-    if (req.query.filters) {
-      try {
-        filters = JSON.parse(req.query.filters as string);
-      } catch (e) {
-        res.status(400).json({ message: "Invalid filters format" });
-        return;
-      }
-    }
-    if (req.query.sorts) {
-      try {
-        sorts = JSON.parse(req.query.sorts as string);
-      } catch (e) {
-        res.status(400).json({ message: "Invalid sorts format" });
-        return;
-      }
-    }
-    if (req.query.page)
-      page = parseInt(req.query.page as string) || DEFAULT_PAGE;
-    if (req.query.pageSize)
-      pageSize = parseInt(req.query.pageSize as string) || DEFAULT_PAGE_SIZE;
+    const { rowData, rowCount } = await CourseService.getAllCourses({
+      filterModel,
+      sortModel,
+      startRow,
+      endRow,
+    });
 
-    const pagination: IPagination = { page, pageSize };
-    const { data, totalCount } = await CourseService.getAllCourses(
-      filters,
-      sorts,
-      pagination
-    );
     res.status(200).json({
-      message: "Courses retrieved successfully",
-      data,
-      totalCount,
-      page,
-      pageSize,
+      rowData,
+      rowCount,
     });
   } catch (error) {
     console.error("Get all courses error:", error);
@@ -115,7 +85,14 @@ export const getInstructorCourses = async (
 ): Promise<void> => {
   try {
     const instructorId = req.user!.userId;
-    const courses = await CourseService.getInstructorCourses(instructorId);
+    const { filterModel, sortModel, startRow, endRow } = req.body;
+
+    const courses = await CourseService.getInstructorCourses(instructorId, {
+      filterModel,
+      sortModel,
+      startRow,
+      endRow,
+    });
 
     res.status(200).json({
       message: "Instructor courses retrieved successfully",
@@ -210,11 +187,22 @@ export const getStudentCourses = async (
 ): Promise<void> => {
   try {
     const studentId = req.user!.userId;
-    const courses = await CourseService.getStudentCourses(studentId);
+    const { filterModel, sortModel, startRow, endRow } = req.body;
+
+    const { rowData, rowCount } = await CourseService.getStudentCourses(
+      {
+        filterModel,
+        sortModel,
+        startRow,
+        endRow,
+      },
+      studentId
+    );
 
     res.status(200).json({
       message: "Student courses retrieved successfully",
-      data: courses,
+      data: rowData,
+      totalCount: rowCount,
     });
   } catch (error) {
     console.error("Get student courses error:", error);

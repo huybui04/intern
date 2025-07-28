@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "../shared/constants";
 import { IPagination } from "../interfaces/pagination.interface";
 import { UserService } from "../services/user.service";
 import { UpdateUserInput, UserRole } from "../interfaces/user.interface";
 import { IFilter } from "../interfaces/filter.interface";
 import { ISort } from "../interfaces/sort.interface";
+import { DEFAULT_END_ROW, DEFAULT_START_ROW } from "../shared/constants";
 
 export const getAllUsers = async (
   req: Request,
@@ -13,8 +13,8 @@ export const getAllUsers = async (
   try {
     let filters: IFilter[] = [];
     let sorts: ISort[] = [];
-    let page = DEFAULT_PAGE;
-    let pageSize = DEFAULT_PAGE_SIZE;
+    let page = DEFAULT_START_ROW;
+    let pageSize = DEFAULT_END_ROW;
 
     if (req.query.filters) {
       try {
@@ -33,11 +33,13 @@ export const getAllUsers = async (
       }
     }
     if (req.query.page)
-      page = parseInt(req.query.page as string) || DEFAULT_PAGE;
+      page = parseInt(req.query.page as string) || DEFAULT_START_ROW;
     if (req.query.pageSize)
-      pageSize = parseInt(req.query.pageSize as string) || DEFAULT_PAGE_SIZE;
+      pageSize = parseInt(req.query.pageSize as string) || DEFAULT_END_ROW;
 
-    const pagination: IPagination = { page, pageSize };
+    const startRow = (page - 1) * pageSize;
+    const endRow = startRow + pageSize;
+    const pagination: IPagination = { startRow, endRow };
     const { data, totalCount } = await UserService.getAllUsers(
       filters,
       sorts,
