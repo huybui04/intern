@@ -5,6 +5,7 @@ import {
   UpdateCourseInput,
 } from "../interfaces/course.interface";
 import { AuthRequest } from "../middlewares/auth.middleware";
+import { getPageInfo } from "../utils/getPageInfo";
 
 export const createCourse = async (
   req: AuthRequest,
@@ -42,9 +43,28 @@ export const getAllCourses = async (
       endRow,
     });
 
+    const { pageSize, currentPage, totalPages } = getPageInfo(
+      startRow,
+      endRow,
+      rowCount
+    );
+
     res.status(200).json({
-      rowData,
-      rowCount,
+      success: true,
+      errors: null,
+      message: "Course retrieved successfully",
+      data: {
+        rows: rowData,
+      },
+      rowCount: rowCount,
+      lastRow: rowCount,
+      pageInfo: {
+        startRow,
+        endRow,
+        pageSize,
+        currentPage,
+        totalPages,
+      },
     });
   } catch (error) {
     console.error("Get all courses error:", error);
@@ -87,21 +107,47 @@ export const getInstructorCourses = async (
     const instructorId = req.user!.userId;
     const { filterModel, sortModel, startRow, endRow } = req.body;
 
-    const courses = await CourseService.getInstructorCourses(instructorId, {
-      filterModel,
-      sortModel,
+    const { rowData, rowCount } = await CourseService.getInstructorCourses(
+      instructorId,
+      {
+        filterModel,
+        sortModel,
+        startRow,
+        endRow,
+      }
+    );
+
+    const { pageSize, currentPage, totalPages } = getPageInfo(
       startRow,
       endRow,
-    });
+      rowCount
+    );
 
     res.status(200).json({
-      message: "Instructor courses retrieved successfully",
-      data: courses,
+      success: true,
+      errors: null,
+      message: "Course retrieved successfully",
+      data: {
+        rows: rowData,
+      },
+      rowCount: rowCount,
+      lastRow: rowCount,
+      pageInfo: {
+        startRow,
+        endRow,
+        pageSize,
+        currentPage,
+        totalPages,
+      },
     });
   } catch (error) {
     console.error("Get instructor courses error:", error);
     res.status(500).json({
-      message: error instanceof Error ? error.message : "Internal server error",
+      success: false,
+      errors: error instanceof Error ? error.message : "Internal server error",
+      rows: [],
+      lastRow: 0,
+      pageInfo: null,
     });
   }
 };
@@ -199,15 +245,38 @@ export const getStudentCourses = async (
       studentId
     );
 
+    const { pageSize, currentPage, totalPages } = getPageInfo(
+      startRow,
+      endRow,
+      rowCount
+    );
+
     res.status(200).json({
-      message: "Student courses retrieved successfully",
-      data: rowData,
-      totalCount: rowCount,
+      success: true,
+      errors: null,
+      message: "Course retrieved successfully",
+
+      data: {
+        rows: rowData,
+      },
+      rowCount: rowCount,
+      lastRow: rowCount,
+      pageInfo: {
+        startRow,
+        endRow,
+        pageSize,
+        currentPage,
+        totalPages,
+      },
     });
   } catch (error) {
     console.error("Get student courses error:", error);
     res.status(500).json({
-      message: error instanceof Error ? error.message : "Internal server error",
+      success: false,
+      errors: error instanceof Error ? error.message : "Internal server error",
+      rows: [],
+      lastRow: 0,
+      pageInfo: null,
     });
   }
 };
