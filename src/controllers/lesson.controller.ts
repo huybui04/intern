@@ -1,4 +1,3 @@
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "../shared/constants";
 import { IPagination } from "../interfaces/pagination.interface";
 import { Request, Response } from "express";
 import { LessonService } from "../services/lesson.service";
@@ -7,6 +6,7 @@ import {
   UpdateLessonInput,
 } from "../interfaces/lesson.interface";
 import { AuthRequest } from "../middlewares/auth.middleware";
+import { DEFAULT_END_ROW, DEFAULT_START_ROW } from "../shared/constants";
 
 export const createLesson = async (
   req: AuthRequest,
@@ -63,13 +63,15 @@ export const getLessonsByCourse = async (
     const { courseId } = req.params;
     const { published } = req.query;
 
-    let page = DEFAULT_PAGE;
-    let pageSize = DEFAULT_PAGE_SIZE;
+    let page = DEFAULT_START_ROW;
+    let pageSize = DEFAULT_END_ROW;
     if (req.query.page)
-      page = parseInt(req.query.page as string) || DEFAULT_PAGE;
+      page = parseInt(req.query.page as string) || DEFAULT_START_ROW;
     if (req.query.pageSize)
-      pageSize = parseInt(req.query.pageSize as string) || DEFAULT_PAGE_SIZE;
-    const pagination: IPagination = { page, pageSize };
+      pageSize = parseInt(req.query.pageSize as string) || DEFAULT_END_ROW;
+    const startRow = (page - 1) * pageSize;
+    const endRow = startRow + pageSize;
+    const pagination: IPagination = { startRow, endRow };
     let lessons;
     if (published === "true") {
       lessons = await LessonService.getPublishedLessonsByCourse(

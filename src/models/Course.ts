@@ -144,17 +144,28 @@ export class CourseModel {
     return CourseMongooseModel.findById(id);
   }
 
-  static async findByInstructor(instructorId: string): Promise<Course[]> {
-    return CourseMongooseModel.find({
-      instructorId: new Types.ObjectId(instructorId),
-    });
+  static async findByInstructor(
+    instructorId: string,
+    skip: number,
+    limit: number,
+    filter?: any,
+    sort?: any
+  ): Promise<{ data: Course[]; totalCount: number }> {
+    const baseFilter = { instructorId: new Types.ObjectId(instructorId) };
+    const finalFilter = filter ? { ...baseFilter, ...filter } : baseFilter;
+    const totalCount = await CourseMongooseModel.countDocuments(finalFilter);
+    const data = await CourseMongooseModel.find(finalFilter)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
+    return { data, totalCount };
   }
 
   static async findAll(
+    skip: number,
+    limit: number,
     filter?: any,
-    sort?: any,
-    skip: number = 0,
-    limit: number = 20
+    sort?: any
   ): Promise<{ data: Course[]; totalCount: number }> {
     const totalCount = await CourseMongooseModel.countDocuments();
     const data = await CourseMongooseModel.find(filter)
@@ -207,12 +218,21 @@ export class CourseModel {
     return enrollment;
   }
 
-  static async getStudentCourses(
-    studentId: string
-  ): Promise<CourseEnrollment[]> {
-    return CourseEnrollmentMongooseModel.find({
-      studentId: new Types.ObjectId(studentId),
-    });
+  static async findByStudent(
+    studentId: string,
+    skip: number,
+    limit: number,
+    filter?: any,
+    sort?: any
+  ): Promise<{ data: Course[]; totalCount: number }> {
+    const baseFilter = { studentId: new Types.ObjectId(studentId) };
+    const finalFilter = filter ? { ...baseFilter, ...filter } : baseFilter;
+    const totalCount = await CourseMongooseModel.countDocuments(finalFilter);
+    const data = await CourseMongooseModel.find(finalFilter)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
+    return { data, totalCount };
   }
 
   static async getEnrollmentStats(

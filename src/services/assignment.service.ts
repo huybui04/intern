@@ -11,7 +11,6 @@ import {
 import { IFilter } from "../interfaces/filter.interface";
 import { ISort } from "../interfaces/sort.interface";
 import { IPagination } from "../interfaces/pagination.interface";
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "../shared/constants";
 
 export interface AssignmentQueryInput extends IPagination {
   sort?: ISort[];
@@ -80,9 +79,10 @@ export class AssignmentService {
     } else {
       sortObj = { createdAt: -1 };
     }
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
-    const skip = (page - 1) * pageSize;
+    const startRow = query.startRow ?? 0;
+    const endRow = query.endRow ?? 20;
+    const skip = startRow;
+    const pageSize = endRow - startRow;
     const [data, total] = await Promise.all([
       AssignmentModel.findWithQuery(mongoFilter, sortObj, skip, pageSize),
       AssignmentModel.countWithQuery(mongoFilter),
@@ -285,13 +285,13 @@ export class AssignmentService {
     courseId: string,
     pagination: IPagination = {}
   ): Promise<Assignment[]> {
-    const page = pagination.page ?? DEFAULT_PAGE;
-    const pageSize = pagination.pageSize ?? DEFAULT_PAGE_SIZE;
-    const skip = (page - 1) * pageSize;
+    const startRow = pagination.startRow ?? 0;
+    const endRow = pagination.endRow ?? 20;
+    const skip = startRow;
     const assignmentsResult = await AssignmentModel.findByCourse(
       courseId,
       skip,
-      pageSize
+      endRow
     );
     return assignmentsResult.data.filter(
       (assignment) => assignment.isPublished

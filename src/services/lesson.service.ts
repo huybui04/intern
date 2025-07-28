@@ -9,7 +9,6 @@ import {
 import { IFilter } from "../interfaces/filter.interface";
 import { ISort } from "../interfaces/sort.interface";
 import { IPagination } from "../interfaces/pagination.interface";
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "../shared/constants";
 
 export interface LessonQueryInput extends IPagination {
   sort?: ISort[];
@@ -77,9 +76,10 @@ export class LessonService {
     } else {
       sortObj = { order: 1 };
     }
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
-    const skip = (page - 1) * pageSize;
+    const startRow = query.startRow ?? 0;
+    const endRow = query.endRow ?? 20;
+    const skip = startRow;
+    const pageSize = endRow - startRow;
     const [data, total] = await Promise.all([
       LessonModel.findWithQuery(mongoFilter, sortObj, skip, pageSize),
       LessonModel.countWithQuery(mongoFilter),
@@ -183,11 +183,11 @@ export class LessonService {
     if (!courseId) {
       throw new Error("Course ID is required");
     }
-    const page = pagination.page ?? DEFAULT_PAGE;
-    const pageSize = pagination.pageSize ?? DEFAULT_PAGE_SIZE;
-    const skip = (page - 1) * pageSize;
+    const startRow = pagination.startRow ?? 0;
+    const endRow = pagination.endRow ?? 20;
+    const skip = startRow;
 
-    const result = await LessonModel.findByCourse(courseId, skip, pageSize);
+    const result = await LessonModel.findByCourse(courseId, skip, endRow);
     return result.data;
   }
 
@@ -195,10 +195,11 @@ export class LessonService {
     courseId: string,
     pagination: IPagination
   ): Promise<Lesson[]> {
-    const page = pagination.page ?? DEFAULT_PAGE;
-    const pageSize = pagination.pageSize ?? DEFAULT_PAGE_SIZE;
-    const skip = (page - 1) * pageSize;
-    const lessons = await LessonModel.findByCourse(courseId, skip, pageSize);
-    return lessons.data.filter((lesson) => lesson.isPublished);
+    const startRow = pagination.startRow ?? 0;
+    const endRow = pagination.endRow ?? 20;
+    const skip = startRow;
+
+    const result = await LessonModel.findByCourse(courseId, skip, endRow);
+    return result.data.filter((lesson) => lesson.isPublished);
   }
 }

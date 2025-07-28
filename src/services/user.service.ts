@@ -1,15 +1,10 @@
 import { UserModel, UserMongooseModel } from "../models/User";
-import {
-  User,
-  UpdateUserInput,
-  UserResponse,
-} from "../interfaces/user.interface";
+import { UpdateUserInput, UserResponse } from "../interfaces/user.interface";
 import { UserRole } from "../interfaces/enum";
 import { hashPassword } from "../utils/bcrypt.utils";
 import { IFilter } from "../interfaces/filter.interface";
 import { ISort } from "../interfaces/sort.interface";
 import { IPagination } from "../interfaces/pagination.interface";
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "../shared/constants";
 
 // Chuẩn hóa input cho ag-Grid query
 export interface UserQueryInput extends IPagination {
@@ -73,11 +68,11 @@ export class UserService {
     } else {
       sortObj = { createdAt: -1 };
     }
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
-    const skip = (page - 1) * pageSize;
+    const startRow = query.startRow ?? 0;
+    const endRow = query.endRow ?? 20;
+    const skip = startRow;
     const [users, total] = await Promise.all([
-      UserModel.findWithQuery(mongoFilter, sortObj, skip, pageSize),
+      UserModel.findWithQuery(mongoFilter, sortObj, skip, endRow - startRow),
       UserModel.countWithQuery(mongoFilter),
     ]);
     const data = users.map((user) => ({
@@ -138,14 +133,14 @@ export class UserService {
       mongoSort[sort.field] = sort.direction === "asc" ? 1 : -1;
     }
 
-    const page = pagination.page ?? DEFAULT_PAGE;
-    const pageSize = pagination.pageSize ?? DEFAULT_PAGE_SIZE;
+    const startRow = pagination.startRow ?? 0;
+    const endRow = pagination.endRow ?? 20;
     const totalCount = await UserMongooseModel.countDocuments(mongoFilter);
-    const skip = (page - 1) * pageSize;
+    const skip = startRow;
     const users = await UserMongooseModel.find(mongoFilter)
       .sort(mongoSort)
       .skip(skip)
-      .limit(pageSize)
+      .limit(endRow - startRow)
       .select("-password")
       .lean();
 
