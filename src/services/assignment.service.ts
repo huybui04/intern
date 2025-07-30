@@ -6,88 +6,39 @@ import {
   UpdateAssignmentInput,
   AssignmentSubmission,
   GradeAssignmentInput,
+  AssignmentQueryInput,
+  AssignmentQueryResult,
 } from "../interfaces/assignment.interface";
 
-import { IFilter } from "../interfaces/filter.interface";
-import { ISort } from "../interfaces/sort.interface";
 import { IPagination } from "../interfaces/pagination.interface";
-
-export interface AssignmentQueryInput extends IPagination {
-  sort?: ISort[];
-  filter?: IFilter[];
-  search?: string;
-  courseId?: string;
-}
-
-export interface AssignmentQueryResult {
-  data: Assignment[];
-  total: number;
-}
+import { filterToMongo } from "@/utils/filterToMongo";
+import { SortToMongo } from "@/utils/sortToMongo";
+import { DEFAULT_END_ROW, DEFAULT_START_ROW } from "@/shared/constants";
 
 export class AssignmentService {
   static async getAssignments(
     query: AssignmentQueryInput
   ): Promise<AssignmentQueryResult> {
-    const mongoFilter: any = {};
-    if (query.courseId) {
-      mongoFilter.courseId = query.courseId;
-    }
-    if (query.filter && query.filter.length > 0) {
-      for (const f of query.filter) {
-        switch (f.operator) {
-          case "eq":
-            mongoFilter[f.field] = f.value;
-            break;
-          case "ne":
-            mongoFilter[f.field] = { $ne: f.value };
-            break;
-          case "lt":
-            mongoFilter[f.field] = { $lt: f.value };
-            break;
-          case "lte":
-            mongoFilter[f.field] = { $lte: f.value };
-            break;
-          case "gt":
-            mongoFilter[f.field] = { $gt: f.value };
-            break;
-          case "gte":
-            mongoFilter[f.field] = { $gte: f.value };
-            break;
-          case "in":
-            mongoFilter[f.field] = { $in: f.value };
-            break;
-          case "nin":
-            mongoFilter[f.field] = { $nin: f.value };
-            break;
-          case "regex":
-            mongoFilter[f.field] = { $regex: f.value, $options: "i" };
-            break;
-        }
-      }
-    }
-    if (query.search) {
-      mongoFilter.$or = [
-        { title: { $regex: query.search, $options: "i" } },
-        { description: { $regex: query.search, $options: "i" } },
-      ];
-    }
-    let sortObj: any = {};
-    if (query.sort && query.sort.length > 0) {
-      for (const s of query.sort) {
-        sortObj[s.field] = s.direction === "asc" ? 1 : -1;
-      }
-    } else {
-      sortObj = { createdAt: -1 };
-    }
-    const startRow = query.startRow ?? 0;
-    const endRow = query.endRow ?? 20;
+    const { filterModel, sortModel } = query;
+
+    const mongoFilter = filterToMongo(filterModel);
+    const mongoSort = SortToMongo(sortModel ?? []);
+
+    const startRow = query.startRow ?? DEFAULT_START_ROW;
+    const endRow = query.endRow ?? DEFAULT_END_ROW;
     const skip = startRow;
-    const pageSize = endRow - startRow;
-    const [data, total] = await Promise.all([
-      AssignmentModel.findWithQuery(mongoFilter, sortObj, skip, pageSize),
-      AssignmentModel.countWithQuery(mongoFilter),
-    ]);
-    return { data, total };
+    const limit = endRow - startRow;
+
+    const result = await AssignmentModel.findAll(
+      skip,
+      limit,
+      mongoFilter,
+      mongoSort
+    );
+    return {
+      rowData: result.data,
+      rowCount: result.totalCount,
+    };
   }
   static async createAssignment(
     assignmentData: CreateAssignmentInput,

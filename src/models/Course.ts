@@ -167,7 +167,7 @@ export class CourseModel {
     filter?: any,
     sort?: any
   ): Promise<{ data: Course[]; totalCount: number }> {
-    const totalCount = await CourseMongooseModel.countDocuments();
+    const totalCount = await CourseMongooseModel.countDocuments(filter);
     const data = await CourseMongooseModel.find(filter)
       .sort(sort)
       .skip(skip)
