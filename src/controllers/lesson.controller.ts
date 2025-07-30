@@ -6,7 +6,7 @@ import {
   UpdateLessonInput,
 } from "../interfaces/lesson.interface";
 import { AuthRequest } from "../middlewares/auth.middleware";
-import { DEFAULT_END_ROW, DEFAULT_START_ROW } from "../shared/constants";
+import { getPageInfo } from "../utils/getPageInfo";
 
 export const createLesson = async (
   req: AuthRequest,
@@ -63,34 +63,44 @@ export const getLessonsByCourse = async (
     const { courseId } = req.params;
     const { published } = req.query;
 
-    let page = DEFAULT_START_ROW;
-    let pageSize = DEFAULT_END_ROW;
-    if (req.query.page)
-      page = parseInt(req.query.page as string) || DEFAULT_START_ROW;
+    let page = 1;
+    let pageSize = 20;
+    if (req.query.page) page = parseInt(req.query.page as string) || 1;
     if (req.query.pageSize)
-      pageSize = parseInt(req.query.pageSize as string) || DEFAULT_END_ROW;
+      pageSize = parseInt(req.query.pageSize as string) || 20;
     const startRow = (page - 1) * pageSize;
     const endRow = startRow + pageSize;
-    const pagination: IPagination = { startRow, endRow };
-    let lessons;
+
+    let result;
     if (published === "true") {
-      lessons = await LessonService.getPublishedLessonsByCourse(
-        courseId,
-        pagination
-      );
+      result = await LessonService.getPublishedLessonsByCourse(courseId, {
+        startRow,
+        endRow,
+      });
     } else {
-      lessons = await LessonService.getLessonsByCourse(courseId, pagination);
+      result = await LessonService.getLessonsByCourse(courseId, {
+        startRow,
+        endRow,
+      });
     }
+
+    const pageInfo = getPageInfo(startRow, endRow, result.rowCount);
+
     res.status(200).json({
-      message: "Lessons retrieved successfully",
-      data: lessons,
-      page,
-      pageSize,
+      success: true,
+      errors: null,
+      rows: result.rowData,
+      lastRow: result.rowCount,
+      pageInfo,
     });
   } catch (error) {
     console.error("Get lessons by course error:", error);
     res.status(400).json({
-      message: error instanceof Error ? error.message : "Bad request",
+      success: false,
+      errors: error instanceof Error ? error.message : "Bad request",
+      rows: [],
+      lastRow: 0,
+      pageInfo: null,
     });
   }
 };

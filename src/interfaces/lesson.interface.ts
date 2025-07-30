@@ -1,4 +1,7 @@
 import { Document, Types } from "mongoose";
+import { IPagination } from "./pagination.interface";
+import { IFilter } from "./filter.interface";
+import { ISort } from "./sort.interface";
 
 export interface Lesson extends Document {
   courseId: Types.ObjectId;
@@ -31,4 +34,17 @@ export interface UpdateLessonInput {
   order?: number;
   duration?: number;
   isPublished?: boolean;
+}
+
+export interface LessonQueryInput extends IPagination {
+  filterModel?: any;
+  sortModel?: any[];
+  startRow?: number;
+  endRow?: number;
+  courseId?: string;
+}
+
+export interface LessonQueryResult {
+  rowData: Lesson[];
+  rowCount: number;
 }

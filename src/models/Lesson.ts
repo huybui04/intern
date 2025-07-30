@@ -58,6 +58,20 @@ export const LessonMongooseModel: Model<Lesson> = model<Lesson>(
 );
 
 export class LessonModel {
+  static async findAll(
+    skip: number,
+    limit: number,
+    filter?: any,
+    sort?: any
+  ): Promise<{ data: Lesson[]; totalCount: number }> {
+    const totalCount = await LessonMongooseModel.countDocuments();
+    const data = await LessonMongooseModel.find(filter)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
+    return { data, totalCount };
+  }
+
   static async findWithQuery(
     filter: any,
     sort: any,
