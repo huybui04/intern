@@ -4,87 +4,36 @@ import {
   Lesson,
   CreateLessonInput,
   UpdateLessonInput,
+  LessonQueryInput,
+  LessonQueryResult,
 } from "../interfaces/lesson.interface";
-
-import { IFilter } from "../interfaces/filter.interface";
-import { ISort } from "../interfaces/sort.interface";
 import { IPagination } from "../interfaces/pagination.interface";
-
-export interface LessonQueryInput extends IPagination {
-  sort?: ISort[];
-  filter?: IFilter[];
-  search?: string;
-  courseId?: string;
-}
-
-export interface LessonQueryResult {
-  data: Lesson[];
-  total: number;
-}
+import { DEFAULT_END_ROW, DEFAULT_START_ROW } from "../shared/constants";
+import { filterToMongo } from "../utils/filterToMongo";
+import { SortToMongo } from "../utils/sortToMongo";
 
 export class LessonService {
   static async getLessons(query: LessonQueryInput): Promise<LessonQueryResult> {
-    const mongoFilter: any = {};
-    if (query.courseId) {
-      mongoFilter.courseId = query.courseId;
-    }
-    if (query.filter && query.filter.length > 0) {
-      for (const f of query.filter) {
-        switch (f.operator) {
-          case "eq":
-            mongoFilter[f.field] = f.value;
-            break;
-          case "ne":
-            mongoFilter[f.field] = { $ne: f.value };
-            break;
-          case "lt":
-            mongoFilter[f.field] = { $lt: f.value };
-            break;
-          case "lte":
-            mongoFilter[f.field] = { $lte: f.value };
-            break;
-          case "gt":
-            mongoFilter[f.field] = { $gt: f.value };
-            break;
-          case "gte":
-            mongoFilter[f.field] = { $gte: f.value };
-            break;
-          case "in":
-            mongoFilter[f.field] = { $in: f.value };
-            break;
-          case "nin":
-            mongoFilter[f.field] = { $nin: f.value };
-            break;
-          case "regex":
-            mongoFilter[f.field] = { $regex: f.value, $options: "i" };
-            break;
-        }
-      }
-    }
-    if (query.search) {
-      mongoFilter.$or = [
-        { title: { $regex: query.search, $options: "i" } },
-        { description: { $regex: query.search, $options: "i" } },
-        { content: { $regex: query.search, $options: "i" } },
-      ];
-    }
-    let sortObj: any = {};
-    if (query.sort && query.sort.length > 0) {
-      for (const s of query.sort) {
-        sortObj[s.field] = s.direction === "asc" ? 1 : -1;
-      }
-    } else {
-      sortObj = { order: 1 };
-    }
-    const startRow = query.startRow ?? 0;
-    const endRow = query.endRow ?? 20;
+    const { filterModel, sortModel } = query;
+
+    const mongoFilter = filterToMongo(filterModel);
+    const mongoSort = SortToMongo(sortModel ?? []);
+
+    const startRow = query.startRow ?? DEFAULT_START_ROW;
+    const endRow = query.endRow ?? DEFAULT_END_ROW;
     const skip = startRow;
-    const pageSize = endRow - startRow;
-    const [data, total] = await Promise.all([
-      LessonModel.findWithQuery(mongoFilter, sortObj, skip, pageSize),
-      LessonModel.countWithQuery(mongoFilter),
-    ]);
-    return { data, total };
+    const limit = endRow - startRow;
+
+    const result = await LessonModel.findAll(
+      skip,
+      limit,
+      mongoFilter,
+      mongoSort
+    );
+    return {
+      rowData: result.data,
+      rowCount: result.totalCount,
+    };
   }
   static async createLesson(
     lessonData: CreateLessonInput,
@@ -178,28 +127,61 @@ export class LessonService {
 
   static async getLessonsByCourse(
     courseId: string,
-    pagination: IPagination
-  ): Promise<Lesson[]> {
+    query: LessonQueryInput
+  ): Promise<LessonQueryResult> {
     if (!courseId) {
       throw new Error("Course ID is required");
     }
-    const startRow = pagination.startRow ?? 0;
-    const endRow = pagination.endRow ?? 20;
-    const skip = startRow;
 
-    const result = await LessonModel.findByCourse(courseId, skip, endRow);
-    return result.data;
+    const { filterModel, sortModel } = query;
+    const mongoFilter = filterToMongo(filterModel);
+    const mongoSort = SortToMongo(sortModel ?? []);
+
+    const startRow = query.startRow ?? DEFAULT_START_ROW;
+    const endRow = query.endRow ?? DEFAULT_END_ROW;
+    const skip = startRow;
+    const limit = endRow - startRow;
+
+    const result = await LessonModel.findByCourse(
+      courseId,
+      skip,
+      limit,
+      mongoFilter,
+      mongoSort
+    );
+    return {
+      rowData: result.data,
+      rowCount: result.totalCount,
+    };
   }
 
   static async getPublishedLessonsByCourse(
     courseId: string,
-    pagination: IPagination
-  ): Promise<Lesson[]> {
-    const startRow = pagination.startRow ?? 0;
-    const endRow = pagination.endRow ?? 20;
-    const skip = startRow;
+    query: LessonQueryInput
+  ): Promise<LessonQueryResult> {
+    if (!courseId) {
+      throw new Error("Course ID is required");
+    }
 
-    const result = await LessonModel.findByCourse(courseId, skip, endRow);
-    return result.data.filter((lesson) => lesson.isPublished);
+    const { filterModel, sortModel } = query;
+    const mongoFilter = filterToMongo(filterModel);
+    const mongoSort = SortToMongo(sortModel ?? []);
+
+    const startRow = query.startRow ?? DEFAULT_START_ROW;
+    const endRow = query.endRow ?? DEFAULT_END_ROW;
+    const skip = startRow;
+    const limit = endRow - startRow;
+
+    const result = await LessonModel.findByCourse(
+      courseId,
+      skip,
+      limit,
+      mongoFilter,
+      mongoSort
+    );
+    return {
+      rowData: result.data,
+      rowCount: result.totalCount,
+    };
   }
 }
