@@ -144,20 +144,24 @@ export const AssignmentSubmissionMongooseModel: Model<AssignmentSubmission> =
   );
 
 export class AssignmentModel {
-  static async findWithQuery(
-    filter: any,
-    sort: any,
+  static async findAll(
     skip: number,
-    limit: number
-  ) {
-    return AssignmentMongooseModel.find(filter)
+    limit: number,
+    filter?: any,
+    sort?: any
+  ): Promise<{ data: Assignment[]; totalCount: number }> {
+    const totalCount = await AssignmentMongooseModel.countDocuments(filter);
+    const data = await AssignmentMongooseModel.find(filter)
       .sort(sort)
       .skip(skip)
       .limit(limit);
+    return { data, totalCount };
   }
+
   static async countWithQuery(filter: any) {
     return AssignmentMongooseModel.countDocuments(filter);
   }
+
   static async createAssignment(
     assignmentData: CreateAssignmentInput
   ): Promise<Assignment> {
@@ -185,16 +189,18 @@ export class AssignmentModel {
 
   static async findByCourse(
     courseId: string,
-    sort: any = {},
-    skip: number = 0,
-    limit: number = 20
+    skip: number,
+    limit: number,
+    filter?: any,
+    sort?: any
   ): Promise<{ data: Assignment[]; totalCount: number }> {
-    const totalCount = await AssignmentMongooseModel.countDocuments({
-      courseId: new Types.ObjectId(courseId),
-    });
-    const data = await AssignmentMongooseModel.find({
-      courseId: new Types.ObjectId(courseId),
-    })
+    const baseFilter = { courseId: new Types.ObjectId(courseId) };
+    const finalFilter = filter ? { ...baseFilter, ...filter } : baseFilter;
+    const totalCount = await AssignmentMongooseModel.countDocuments(
+      finalFilter
+    );
+
+    const data = await AssignmentMongooseModel.find(finalFilter)
       .sort(sort)
       .skip(skip)
       .limit(limit);

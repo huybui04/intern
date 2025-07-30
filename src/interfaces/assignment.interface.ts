@@ -1,4 +1,5 @@
 import { Document, Types } from "mongoose";
+import { IPagination } from "./pagination.interface";
 
 export interface Assignment extends Document {
   courseId: Types.ObjectId;
@@ -58,4 +59,18 @@ export interface SubmissionAnswer {
 export interface GradeAssignmentInput {
   score: number;
   feedback?: string;
+}
+
+export interface AssignmentQueryInput extends IPagination {
+  filterModel?: any;
+  sortModel?: any[];
+  startRow?: number;
+  endRow?: number;
+  courseId?: string;
+  lessonId?: string;
+}
+
+export interface AssignmentQueryResult {
+  rowData: Assignment[];
+  rowCount: number;
 }
