@@ -11,9 +11,9 @@ import {
 } from "../interfaces/assignment.interface";
 
 import { IPagination } from "../interfaces/pagination.interface";
-import { filterToMongo } from "@/utils/filterToMongo";
-import { SortToMongo } from "@/utils/sortToMongo";
-import { DEFAULT_END_ROW, DEFAULT_START_ROW } from "@/shared/constants";
+import { filterToMongo } from "../utils/filterToMongo";
+import { SortToMongo } from "../utils/sortToMongo";
+import { DEFAULT_END_ROW, DEFAULT_START_ROW } from "../shared/constants";
 
 export class AssignmentService {
   static async getAssignments(
