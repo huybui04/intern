@@ -4,6 +4,7 @@ import {
   login,
   refreshToken,
   requestPasswordReset,
+  logout,
 } from "../controllers/auth.controller";
 import { authenticateToken } from "../middlewares/auth.middleware";
 
@@ -16,8 +17,6 @@ authRouter.post("/refresh-token", refreshToken);
 authRouter.post("/forgot-password", requestPasswordReset);
 
 // Protected routes
-authRouter.post("/logout", authenticateToken, (req, res) => {
-  res.status(200).json({ message: "Logged out successfully" });
-});
+authRouter.post("/logout", authenticateToken, logout);
 
 export default authRouter;

@@ -1,6 +1,5 @@
 import { UserMongooseModel } from "../models/User";
 import {
-  User,
   CreateUserInput,
   LoginInput,
   AuthResponse,
@@ -12,6 +11,8 @@ import {
   generateResetToken,
   generateResetTokenExpiry,
 } from "../utils/token.utils";
+import redisClient from "./redis.config";
+import { TOKEN_CACHE_PREFIX } from "../shared/constants";
 
 export class AuthService {
   static async register(userData: CreateUserInput): Promise<AuthResponse> {
@@ -111,6 +112,10 @@ export class AuthService {
     };
   }
 
+  static async logout(token: string): Promise<void> {
+    await AuthService.removeTokenFromCache(token);
+  }
+
   static async refreshToken(
     refreshToken: string
   ): Promise<{ accessToken: string }> {
@@ -169,5 +174,9 @@ export class AuthService {
     // This would typically search by resetPasswordToken in a real implementation
     // For now, this is a placeholder
     throw new Error("Password reset functionality not fully implemented");
+  }
+  static async removeTokenFromCache(token: string): Promise<void> {
+    const cacheKey = `${TOKEN_CACHE_PREFIX}${token}`;
+    await redisClient.del(cacheKey);
   }
 }

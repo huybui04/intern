@@ -33,6 +33,23 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+export const logout = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(" ")[1];
+    if (!token) {
+      res.status(400).json({ message: "No token provided" });
+      return;
+    }
+    await AuthService.logout(token);
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    res.status(500).json({
+      message: error instanceof Error ? error.message : "Logout failed",
+    });
+  }
+};
+
 export const refreshToken = async (
   req: Request,
   res: Response

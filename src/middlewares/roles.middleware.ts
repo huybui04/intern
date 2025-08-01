@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import { UserRole } from "../interfaces/enum";
 import { AuthRequest } from "./auth.middleware";
 

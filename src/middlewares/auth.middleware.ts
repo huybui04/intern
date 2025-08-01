@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { UserRole } from "../interfaces/user.interface";
 import { JWTUtils } from "../utils/jwt.utils";
 import redisClient from "../services/redis.config";
+import { TOKEN_CACHE_PREFIX } from "../shared/constants";
 
 export interface AuthRequest extends Request {
   user?: {
@@ -10,8 +11,6 @@ export interface AuthRequest extends Request {
     role: UserRole;
   };
 }
-
-const TOKEN_CACHE_PREFIX = "auth:token:";
 
 export const authenticateToken = async (
   req: AuthRequest,

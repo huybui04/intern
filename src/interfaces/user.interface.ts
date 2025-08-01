@@ -1,4 +1,4 @@
-import { Document, Types } from "mongoose";
+import { Document } from "mongoose";
 import { UserRole } from "./enum";
 
 export interface User extends Document {
