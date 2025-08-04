@@ -1,5 +1,6 @@
 import { Document } from "mongoose";
 import { UserRole } from "./enum";
+import { IPagination } from "./pagination.interface";
 
 export interface User extends Document {
   username: string;
@@ -45,6 +46,18 @@ export interface LoginInput {
 export interface AuthResponse {
   user: UserResponse;
   token: string;
+}
+
+export interface UserQueryInput extends IPagination {
+  filterModel?: any;
+  sortModel?: any[];
+  startRow?: number;
+  endRow?: number;
+}
+
+export interface UserQueryResult {
+  rowData: User[];
+  rowCount: number;
 }
 
 export interface JWTPayload {

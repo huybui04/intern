@@ -40,6 +40,20 @@ const userSchema = new Schema<User>(
 export const UserMongooseModel: Model<User> = model<User>("User", userSchema);
 
 export class UserModel {
+  static async findAll(
+    skip: number,
+    limit: number,
+    filter?: any,
+    sort?: any
+  ): Promise<{ data: User[]; totalCount: number }> {
+    const totalCount = await UserMongooseModel.countDocuments();
+    const data = await UserMongooseModel.find(filter)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
+    return { data, totalCount };
+  }
+
   static async findWithQuery(
     filter: any,
     sort: any,

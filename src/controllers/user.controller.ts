@@ -1,56 +1,44 @@
 import { Request, Response } from "express";
-import { IPagination } from "../interfaces/pagination.interface";
 import { UserService } from "../services/user.service";
-import { UpdateUserInput, UserRole } from "../interfaces/user.interface";
-import { IFilter } from "../interfaces/filter.interface";
-import { ISort } from "../interfaces/sort.interface";
-import { DEFAULT_END_ROW, DEFAULT_START_ROW } from "../shared/constants";
+import { UpdateUserInput } from "../interfaces/user.interface";
+import { getPageInfo } from "../utils/getPageInfo";
 
 export const getAllUsers = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    let filters: IFilter[] = [];
-    let sorts: ISort[] = [];
-    let page = DEFAULT_START_ROW;
-    let pageSize = DEFAULT_END_ROW;
+    const { filterModel, sortModel, startRow, endRow } = req.body;
 
-    if (req.query.filters) {
-      try {
-        filters = JSON.parse(req.query.filters as string);
-      } catch (e) {
-        res.status(400).json({ message: "Invalid filters format" });
-        return;
-      }
-    }
-    if (req.query.sorts) {
-      try {
-        sorts = JSON.parse(req.query.sorts as string);
-      } catch (e) {
-        res.status(400).json({ message: "Invalid sorts format" });
-        return;
-      }
-    }
-    if (req.query.page)
-      page = parseInt(req.query.page as string) || DEFAULT_START_ROW;
-    if (req.query.pageSize)
-      pageSize = parseInt(req.query.pageSize as string) || DEFAULT_END_ROW;
+    const { rowData, rowCount } = await UserService.getAllUsers({
+      filterModel,
+      sortModel,
+      startRow,
+      endRow,
+    });
 
-    const startRow = (page - 1) * pageSize;
-    const endRow = startRow + pageSize;
-    const pagination: IPagination = { startRow, endRow };
-    const { data, totalCount } = await UserService.getAllUsers(
-      filters,
-      sorts,
-      pagination
+    const { pageSize, currentPage, totalPages } = getPageInfo(
+      startRow,
+      endRow,
+      rowCount
     );
+
     res.status(200).json({
-      message: "Users retrieved successfully",
-      data,
-      totalCount,
-      page,
-      pageSize,
+      success: true,
+      errors: null,
+      message: "Course retrieved successfully",
+      data: {
+        rows: rowData,
+      },
+      rowCount: rowCount,
+      lastRow: rowCount,
+      pageInfo: {
+        startRow,
+        endRow,
+        pageSize,
+        currentPage,
+        totalPages,
+      },
     });
   } catch (error) {
     console.error("Get all users error:", error);

@@ -1,161 +1,33 @@
 import { UserModel, UserMongooseModel } from "../models/User";
-import { UpdateUserInput, UserResponse } from "../interfaces/user.interface";
+import {
+  UpdateUserInput,
+  UserQueryInput,
+  UserQueryResult,
+  UserResponse,
+} from "../interfaces/user.interface";
 import { UserRole } from "../interfaces/enum";
 import { hashPassword } from "../utils/bcrypt.utils";
-import { IFilter } from "../interfaces/filter.interface";
-import { ISort } from "../interfaces/sort.interface";
-import { IPagination } from "../interfaces/pagination.interface";
-
-// Chuẩn hóa input cho ag-Grid query
-export interface UserQueryInput extends IPagination {
-  sort?: ISort[];
-  filter?: IFilter[];
-  search?: string;
-}
-
-export interface UserQueryResult {
-  data: UserResponse[];
-  total: number;
-}
+import { filterToMongo } from "../utils/filterToMongo";
+import { SortToMongo } from "../utils/sortToMongo";
+import { DEFAULT_END_ROW, DEFAULT_START_ROW } from "@/shared/constants";
 
 export class UserService {
-  static async getUsers(query: UserQueryInput): Promise<UserQueryResult> {
-    const mongoFilter: any = {};
-    if (query.filter && query.filter.length > 0) {
-      for (const f of query.filter) {
-        switch (f.operator) {
-          case "eq":
-            mongoFilter[f.field] = f.value;
-            break;
-          case "ne":
-            mongoFilter[f.field] = { $ne: f.value };
-            break;
-          case "lt":
-            mongoFilter[f.field] = { $lt: f.value };
-            break;
-          case "lte":
-            mongoFilter[f.field] = { $lte: f.value };
-            break;
-          case "gt":
-            mongoFilter[f.field] = { $gt: f.value };
-            break;
-          case "gte":
-            mongoFilter[f.field] = { $gte: f.value };
-            break;
-          case "in":
-            mongoFilter[f.field] = { $in: f.value };
-            break;
-          case "nin":
-            mongoFilter[f.field] = { $nin: f.value };
-            break;
-          case "regex":
-            mongoFilter[f.field] = { $regex: f.value, $options: "i" };
-            break;
-        }
-      }
-    }
-    if (query.search) {
-      mongoFilter.$or = [
-        { username: { $regex: query.search, $options: "i" } },
-        { email: { $regex: query.search, $options: "i" } },
-      ];
-    }
-    let sortObj: any = {};
-    if (query.sort && query.sort.length > 0) {
-      for (const s of query.sort) {
-        sortObj[s.field] = s.direction === "asc" ? 1 : -1;
-      }
-    } else {
-      sortObj = { createdAt: -1 };
-    }
-    const startRow = query.startRow ?? 0;
-    const endRow = query.endRow ?? 20;
+  static async getAllUsers(query: UserQueryInput): Promise<UserQueryResult> {
+    const { filterModel, sortModel } = query;
+
+    const mongoFilter = filterToMongo(filterModel);
+    const mongoSort = SortToMongo(sortModel ?? []);
+
+    const startRow = query.startRow ?? DEFAULT_START_ROW;
+    const endRow = query.endRow ?? DEFAULT_END_ROW;
     const skip = startRow;
-    const [users, total] = await Promise.all([
-      UserModel.findWithQuery(mongoFilter, sortObj, skip, endRow - startRow),
-      UserModel.countWithQuery(mongoFilter),
-    ]);
-    const data = users.map((user) => ({
-      _id: (user._id as any).toString(),
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      resetPasswordToken: user.resetPasswordToken,
-      resetPasswordExpiry: user.resetPasswordExpiry,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    }));
-    return { data, total };
-  }
-  static async getAllUsers(
-    filters: IFilter[] = [],
-    sorts: ISort[] = [],
-    pagination: IPagination = {}
-  ): Promise<{ data: UserResponse[]; totalCount: number }> {
-    const mongoFilter: any = {};
-    for (const filter of filters) {
-      switch (filter.operator) {
-        case "eq":
-          mongoFilter[filter.field] = filter.value;
-          break;
-        case "ne":
-          mongoFilter[filter.field] = { $ne: filter.value };
-          break;
-        case "lt":
-          mongoFilter[filter.field] = { $lt: filter.value };
-          break;
-        case "lte":
-          mongoFilter[filter.field] = { $lte: filter.value };
-          break;
-        case "gt":
-          mongoFilter[filter.field] = { $gt: filter.value };
-          break;
-        case "gte":
-          mongoFilter[filter.field] = { $gte: filter.value };
-          break;
-        case "in":
-          mongoFilter[filter.field] = { $in: filter.value };
-          break;
-        case "nin":
-          mongoFilter[filter.field] = { $nin: filter.value };
-          break;
-        case "regex":
-          mongoFilter[filter.field] = { $regex: filter.value, $options: "i" };
-          break;
-        default:
-          break;
-      }
-    }
+    const limit = endRow - startRow;
 
-    // Build sort object
-    const mongoSort: any = {};
-    for (const sort of sorts) {
-      mongoSort[sort.field] = sort.direction === "asc" ? 1 : -1;
-    }
-
-    const startRow = pagination.startRow ?? 0;
-    const endRow = pagination.endRow ?? 20;
-    const totalCount = await UserMongooseModel.countDocuments(mongoFilter);
-    const skip = startRow;
-    const users = await UserMongooseModel.find(mongoFilter)
-      .sort(mongoSort)
-      .skip(skip)
-      .limit(endRow - startRow)
-      .select("-password")
-      .lean();
-
-    const data = users.map((user) => ({
-      _id: (user._id as any).toString(),
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      resetPasswordToken: user.resetPasswordToken,
-      resetPasswordExpiry: user.resetPasswordExpiry,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    }));
-
-    return { data, totalCount };
+    const result = await UserModel.findAll(skip, limit, mongoFilter, mongoSort);
+    return {
+      rowData: result.data,
+      rowCount: result.totalCount,
+    };
   }
 
   static async getUserById(id: string): Promise<UserResponse | null> {
