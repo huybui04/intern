@@ -86,3 +86,18 @@ export const requestPasswordReset = async (
     });
   }
 };
+
+export const resetPassword = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { token, newPassword } = req.body;
+    await AuthService.resetPassword(token, newPassword);
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (error) {
+    res.status(400).json({
+      message: error instanceof Error ? error.message : "Reset failed",
+    });
+  }
+};

@@ -171,10 +171,20 @@ export class AuthService {
     token: string,
     newPassword: string
   ): Promise<void> {
-    // This would typically search by resetPasswordToken in a real implementation
-    // For now, this is a placeholder
-    throw new Error("Password reset functionality not fully implemented");
+    const user = await UserMongooseModel.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpiry: { $gt: new Date() },
+    });
+    if (!user) throw new Error("Invalid or expired reset token");
+
+    const hashedPassword = await hashPassword(newPassword);
+    await UserMongooseModel.findByIdAndUpdate(user._id, {
+      password: hashedPassword,
+      resetPasswordToken: null,
+      resetPasswordExpiry: null,
+    });
   }
+
   static async removeTokenFromCache(token: string): Promise<void> {
     const cacheKey = `${TOKEN_CACHE_PREFIX}${token}`;
     await redisClient.del(cacheKey);

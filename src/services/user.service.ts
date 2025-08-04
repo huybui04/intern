@@ -9,7 +9,7 @@ import { UserRole } from "../interfaces/enum";
 import { hashPassword } from "../utils/bcrypt.utils";
 import { filterToMongo } from "../utils/filterToMongo";
 import { SortToMongo } from "../utils/sortToMongo";
-import { DEFAULT_END_ROW, DEFAULT_START_ROW } from "@/shared/constants";
+import { DEFAULT_END_ROW, DEFAULT_START_ROW } from "../shared/constants";
 
 export class UserService {
   static async getAllUsers(query: UserQueryInput): Promise<UserQueryResult> {
