@@ -10,6 +10,7 @@ import {
   getStudentCourses,
   publishCourse,
   getCourseStats,
+  getRelatedCourses,
 } from "../controllers/course.controller";
 import { authenticateToken } from "../middlewares/auth.middleware";
 import {
@@ -23,6 +24,7 @@ const courseRouter = Router();
 // Public routes
 courseRouter.get("/", getAllCourses);
 courseRouter.get("/:id", getCourseById);
+courseRouter.get("/:id/related", getRelatedCourses);
 
 // Protected routes
 courseRouter.use(authenticateToken);
