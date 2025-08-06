@@ -10,6 +10,9 @@ export interface Course extends Document {
   difficulty: "beginner" | "intermediate" | "advanced";
   duration: number; // in hours
   price: number;
+  thumbnailUrl?: string;
+  introVideoUrl?: string;
+  tags?: string[];
   enrolledStudents: Types.ObjectId[];
   maxStudents?: number;
   isPublished: boolean;
@@ -24,6 +27,9 @@ export interface CreateCourseInput {
   difficulty: "beginner" | "intermediate" | "advanced";
   duration: number;
   price: number;
+  thumbnailUrl?: string;
+  introVideoUrl?: string;
+  tags?: string[];
   maxStudents?: number;
 }
 
@@ -34,6 +40,9 @@ export interface UpdateCourseInput {
   difficulty?: "beginner" | "intermediate" | "advanced";
   duration?: number;
   price?: number;
+  thumbnailUrl?: string;
+  introVideoUrl?: string;
+  tags?: string[];
   maxStudents?: number;
   isPublished?: boolean;
 }
