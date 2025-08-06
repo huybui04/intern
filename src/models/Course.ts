@@ -46,6 +46,18 @@ const courseSchema = new Schema<Course>(
       required: true,
       min: 0,
     },
+    introVideoUrl: {
+      type: String,
+    },
+    thumbnailUrl: {
+      type: String,
+    },
+    tags: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
     enrolledStudents: [
       {
         type: Schema.Types.ObjectId,
