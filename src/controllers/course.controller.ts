@@ -324,3 +324,49 @@ export const getCourseStats = async (
     });
   }
 };
+
+export const getRelatedCourses = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { filterModel, sortModel, startRow, endRow } = req.body;
+
+    const { rowData, rowCount } = await CourseService.getRelatedCourses(id, {
+      filterModel,
+      sortModel,
+      startRow,
+      endRow,
+    });
+
+    const { pageSize, currentPage, totalPages } = getPageInfo(
+      startRow,
+      endRow,
+      rowCount
+    );
+
+    res.status(200).json({
+      success: true,
+      errors: null,
+      message: "Related courses retrieved successfully",
+      data: {
+        rows: rowData,
+      },
+      rowCount: rowCount,
+      lastRow: rowCount,
+      pageInfo: {
+        startRow,
+        endRow,
+        pageSize,
+        currentPage,
+        totalPages,
+      },
+    });
+  } catch (error) {
+    console.error("Get related courses error:", error);
+    res.status(500).json({
+      message: error instanceof Error ? error.message : "Internal server error",
+    });
+  }
+};

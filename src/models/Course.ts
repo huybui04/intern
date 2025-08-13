@@ -259,4 +259,39 @@ export class CourseModel {
       completedStudents: enrollments.filter((e) => e.completedAt).length,
     };
   }
+
+  static async findRelatedCourses(
+    courseId: string,
+    skip: number,
+    limit: number,
+    filter?: any,
+    sort?: any
+  ): Promise<{ data: Course[]; totalCount: number }> {
+    const course = await CourseMongooseModel.findById(courseId).lean();
+
+    if (!course) return { data: [], totalCount: 0 };
+
+    const baseFilter = {
+      _id: { $ne: courseId },
+      isPublished: true,
+      $or: [
+        { category: course.category },
+        { tags: { $in: course.tags || [] } },
+      ],
+    };
+    const finalFilter = filter ? { ...baseFilter, ...filter } : baseFilter;
+
+    const totalCount = await CourseMongooseModel.countDocuments(finalFilter);
+    const relatedCourses = await CourseMongooseModel.find({
+      category: course.category,
+      _id: { $ne: courseId },
+      isPublished: true,
+    })
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    return { data: relatedCourses, totalCount };
+  }
 }

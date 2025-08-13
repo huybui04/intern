@@ -10,7 +10,11 @@ import {
 } from "../interfaces/course.interface";
 import { UserRole } from "../interfaces/enum";
 import { Types } from "mongoose";
-import { DEFAULT_END_ROW, DEFAULT_START_ROW } from "../shared/constants";
+import {
+  DEFAULT_END_ROW,
+  DEFAULT_RELATED_COURSES_END_ROW,
+  DEFAULT_START_ROW,
+} from "../shared/constants";
 import { filterToMongo } from "../utils/filterToMongo";
 import { SortToMongo } from "../utils/sortToMongo";
 
@@ -239,6 +243,26 @@ export class CourseService {
     return {
       course,
       enrollmentStats,
+    };
+  }
+
+  static async getRelatedCourses(
+    courseId: string,
+    query: CourseQueryInput
+  ): Promise<CourseQueryResult> {
+    if (!courseId) {
+      throw new Error("Course ID is required");
+    }
+
+    const startRow = query.startRow ?? DEFAULT_START_ROW;
+    const endRow = query.endRow ?? DEFAULT_RELATED_COURSES_END_ROW;
+    const skip = startRow;
+    const limit = endRow - startRow;
+
+    const result = await CourseModel.findRelatedCourses(courseId, skip, limit);
+    return {
+      rowData: result.data,
+      rowCount: result.totalCount,
     };
   }
 }
