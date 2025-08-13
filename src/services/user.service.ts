@@ -5,7 +5,7 @@ import {
   UserQueryResult,
   UserResponse,
 } from "../interfaces/user.interface";
-import { UserRole } from "../interfaces/enum";
+import { EUserRole } from "../interfaces/enum";
 import { hashPassword } from "../utils/bcrypt.utils";
 import { filterToMongo } from "../utils/filterToMongo";
 import { SortToMongo } from "../utils/sortToMongo";
@@ -99,13 +99,13 @@ export class UserService {
 
   static async updateUserRole(
     id: string,
-    role: UserRole
+    role: EUserRole
   ): Promise<UserResponse | null> {
     if (!id) {
       throw new Error("User ID is required");
     }
 
-    if (!role || !Object.values(UserRole).includes(role)) {
+    if (!role || !Object.values(EUserRole).includes(role)) {
       throw new Error("Valid role is required");
     }
 

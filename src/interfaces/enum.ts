@@ -1,5 +1,13 @@
-export enum UserRole {
+export enum EUserRole {
   ADMIN = "admin",
   INSTRUCTOR = "instructor",
   STUDENT = "student",
+}
+
+export enum EQueueJobStatus {
+  WAITING = "waiting",
+  ACTIVE = "active",
+  COMPLETED = "completed",
+  FAILED = "failed",
+  DELAYED = "delayed",
 }

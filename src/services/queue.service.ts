@@ -8,11 +8,10 @@ import {
   JobPriority,
   QueueJobStatus,
 } from "../interfaces/queue.interface";
-import { UserRole } from "../interfaces/enum";
-import { CourseEnrollment } from "../interfaces/course.interface";
 
 // Import the actual mongoose model
 import { CourseMongooseModel } from "../models/Course";
+import { EUserRole } from "../interfaces/enum";
 
 export class QueueService {
   /**
@@ -51,7 +50,7 @@ export class QueueService {
 
       // Validate student exists and has correct role
       const student = await UserMongooseModel.findById(studentId);
-      if (!student || student.role !== UserRole.STUDENT) {
+      if (!student || student.role !== EUserRole.STUDENT) {
         throw new Error("Only students can enroll in courses");
       }
 

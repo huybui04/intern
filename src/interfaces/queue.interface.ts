@@ -1,3 +1,5 @@
+import { EQueueJobStatus } from "./enum";
+
 export interface CourseEnrollmentJobData {
   courseId: string;
   studentId: string;
@@ -21,7 +23,12 @@ export enum JobPriority {
 
 export interface QueueJobStatus {
   id: string;
-  status: "waiting" | "active" | "completed" | "failed" | "delayed";
+  status:
+    | EQueueJobStatus.WAITING
+    | EQueueJobStatus.ACTIVE
+    | EQueueJobStatus.COMPLETED
+    | EQueueJobStatus.FAILED
+    | EQueueJobStatus.DELAYED;
   progress?: number;
   result?: any;
   error?: string;

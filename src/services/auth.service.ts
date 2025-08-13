@@ -4,7 +4,7 @@ import {
   LoginInput,
   AuthResponse,
 } from "../interfaces/user.interface";
-import { UserRole } from "../interfaces/enum";
+import { EUserRole } from "../interfaces/enum";
 import { hashPassword, comparePassword } from "../utils/bcrypt.utils";
 import { JWTUtils } from "../utils/jwt.utils";
 import {
@@ -36,7 +36,7 @@ export class AuthService {
     const newUser = await UserMongooseModel.create({
       ...userData,
       password: hashedPassword,
-      role: userData.role || UserRole.STUDENT,
+      role: userData.role || EUserRole.STUDENT,
     });
 
     // Generate tokens

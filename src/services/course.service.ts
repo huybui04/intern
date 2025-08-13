@@ -8,7 +8,7 @@ import {
   CourseQueryInput,
   CourseQueryResult,
 } from "../interfaces/course.interface";
-import { UserRole } from "../interfaces/enum";
+import { EUserRole } from "../interfaces/enum";
 import { Types } from "mongoose";
 import {
   DEFAULT_END_ROW,
@@ -27,7 +27,7 @@ export class CourseService {
   ): Promise<Course> {
     // Validate instructor exists and has correct role
     const instructor = await UserMongooseModel.findById(instructorId);
-    if (!instructor || instructor.role !== UserRole.INSTRUCTOR) {
+    if (!instructor || instructor.role !== EUserRole.INSTRUCTOR) {
       throw new Error("Only instructors can create courses");
     }
 
@@ -151,7 +151,7 @@ export class CourseService {
 
     // Basic validation before queuing
     const student = await UserMongooseModel.findById(studentId);
-    if (!student || student.role !== UserRole.STUDENT) {
+    if (!student || student.role !== EUserRole.STUDENT) {
       throw new Error("Only students can enroll in courses");
     }
 
@@ -196,7 +196,7 @@ export class CourseService {
 
     // Validate student exists and has correct role
     const student = await UserMongooseModel.findById(studentId);
-    if (!student || student.role !== UserRole.STUDENT) {
+    if (!student || student.role !== EUserRole.STUDENT) {
       throw new Error("Only students can enroll in courses");
     }
 

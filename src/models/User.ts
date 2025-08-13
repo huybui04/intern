@@ -1,6 +1,6 @@
 import { Schema, model, Model } from "mongoose";
 import { User } from "../interfaces/user.interface";
-import { UserRole } from "../interfaces/enum";
+import { EUserRole } from "../interfaces/enum";
 
 const userSchema = new Schema<User>(
   {
@@ -22,8 +22,8 @@ const userSchema = new Schema<User>(
     },
     role: {
       type: String,
-      enum: Object.values(UserRole),
-      default: UserRole.STUDENT,
+      enum: Object.values(EUserRole),
+      default: EUserRole.STUDENT,
     },
     resetPasswordToken: {
       type: String,
