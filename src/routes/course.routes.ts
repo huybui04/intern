@@ -11,6 +11,9 @@ import {
   publishCourse,
   getCourseStats,
   getRelatedCourses,
+  getEnrollmentJobStatus,
+  getQueueStats,
+  cancelEnrollmentJob,
 } from "../controllers/course.controller";
 import { authenticateToken } from "../middlewares/auth.middleware";
 import {
@@ -44,5 +47,10 @@ courseRouter.get("/:id/stats", requireInstructor, getCourseStats);
 // Student routes
 courseRouter.post("/:id/enroll", requireStudent, enrollInCourse);
 courseRouter.get("/student/my-courses", requireStudent, getStudentCourses);
+
+// Queue management routes
+courseRouter.get("/queue/stats", requireInstructorOrAdmin, getQueueStats);
+courseRouter.get("/queue/job/:jobId", getEnrollmentJobStatus);
+courseRouter.delete("/queue/job/:jobId", cancelEnrollmentJob);
 
 export default courseRouter;

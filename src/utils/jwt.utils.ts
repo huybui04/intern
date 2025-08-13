@@ -36,6 +36,6 @@ export class JWTUtils {
   }
 
   static generateAccessToken(payload: JWTPayload): string {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: "15m" });
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: "60m" });
   }
 }

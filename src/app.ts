@@ -7,10 +7,15 @@ import userRouter from "./routes/user.routes";
 import courseRouter from "./routes/course.routes";
 import lessonRouter from "./routes/lesson.routes";
 import assignmentRouter from "./routes/assignment.routes";
+import queueRouter from "./routes/queue.routes";
+import { QueueService } from "./services/queue.service";
 
 dotenv.config();
 
 const app = express();
+
+// Initialize queue processors
+QueueService.initializeProcessors();
 
 // Middleware
 app.use(helmet());
@@ -24,6 +29,7 @@ app.use("/api/users", userRouter);
 app.use("/api/courses", courseRouter);
 app.use("/api/lessons", lessonRouter);
 app.use("/api/assignments", assignmentRouter);
+app.use("/api/queue", queueRouter);
 
 // Health check endpoint
 app.get("/health", (req: Request, res: Response) => {
