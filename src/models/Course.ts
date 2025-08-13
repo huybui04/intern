@@ -237,7 +237,12 @@ export class CourseModel {
     filter?: any,
     sort?: any
   ): Promise<{ data: Course[]; totalCount: number }> {
-    const baseFilter = { studentId: new Types.ObjectId(studentId) };
+    const enrollments = await CourseEnrollmentMongooseModel.find({
+      studentId: new Types.ObjectId(studentId),
+    });
+    const courseIds = enrollments.map((e) => e.courseId);
+
+    const baseFilter = { _id: { $in: courseIds } };
     const finalFilter = filter ? { ...baseFilter, ...filter } : baseFilter;
     const totalCount = await CourseMongooseModel.countDocuments(finalFilter);
     const data = await CourseMongooseModel.find(finalFilter)

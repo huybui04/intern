@@ -17,6 +17,8 @@ import {
 } from "../shared/constants";
 import { filterToMongo } from "../utils/filterToMongo";
 import { SortToMongo } from "../utils/sortToMongo";
+import { QueueService } from "./queue.service";
+import { JobPriority } from "../interfaces/queue.interface";
 
 export class CourseService {
   static async createCourse(
@@ -139,6 +141,52 @@ export class CourseService {
   }
 
   static async enrollInCourse(
+    courseId: string,
+    studentId: string,
+    priority: JobPriority = JobPriority.NORMAL
+  ): Promise<{ jobId: string; message: string }> {
+    if (!courseId || !studentId) {
+      throw new Error("Course ID and Student ID are required");
+    }
+
+    // Basic validation before queuing
+    const student = await UserMongooseModel.findById(studentId);
+    if (!student || student.role !== UserRole.STUDENT) {
+      throw new Error("Only students can enroll in courses");
+    }
+
+    const course = await CourseModel.findById(courseId);
+    if (!course) {
+      throw new Error("Course not found");
+    }
+    if (!course.isPublished) {
+      throw new Error("Course is not published");
+    }
+
+    // Check if student is already enrolled
+    const isAlreadyEnrolled = course.enrolledStudents.some(
+      (enrollment: any) => enrollment.studentId.toString() === studentId
+    );
+
+    if (isAlreadyEnrolled) {
+      throw new Error("Student is already enrolled in this course");
+    }
+
+    // Add enrollment job to queue
+    const jobId = await QueueService.addEnrollmentJob(
+      courseId,
+      studentId,
+      priority
+    );
+
+    return {
+      jobId,
+      message: "Enrollment request has been queued for processing",
+    };
+  }
+
+  // Legacy method for direct enrollment (for backward compatibility)
+  static async enrollInCourseDirectly(
     courseId: string,
     studentId: string
   ): Promise<CourseEnrollment> {

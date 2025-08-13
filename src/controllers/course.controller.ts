@@ -1,11 +1,13 @@
 import { Request, Response } from "express";
 import { CourseService } from "../services/course.service";
+import { QueueService } from "../services/queue.service";
 import {
   CreateCourseInput,
   UpdateCourseInput,
 } from "../interfaces/course.interface";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { getPageInfo } from "../utils/getPageInfo";
+import { JobPriority } from "../interfaces/queue.interface";
 
 export const createCourse = async (
   req: AuthRequest,
@@ -213,11 +215,15 @@ export const enrollInCourse = async (
   try {
     const { id } = req.params;
     const studentId = req.user!.userId;
+    const { priority = JobPriority.NORMAL } = req.body;
 
-    const enrollment = await CourseService.enrollInCourse(id, studentId);
-    res.status(201).json({
-      message: "Successfully enrolled in course",
-      data: enrollment,
+    const result = await CourseService.enrollInCourse(id, studentId, priority);
+    res.status(202).json({
+      message: result.message,
+      data: {
+        jobId: result.jobId,
+        status: "queued",
+      },
     });
   } catch (error) {
     console.error("Enroll in course error:", error);
@@ -365,6 +371,74 @@ export const getRelatedCourses = async (
     });
   } catch (error) {
     console.error("Get related courses error:", error);
+    res.status(500).json({
+      message: error instanceof Error ? error.message : "Internal server error",
+    });
+  }
+};
+
+// Queue management endpoints
+export const getEnrollmentJobStatus = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { jobId } = req.params;
+
+    const status = await QueueService.getJobStatus(jobId);
+    if (!status) {
+      res.status(404).json({ message: "Job not found" });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Job status retrieved successfully",
+      data: status,
+    });
+  } catch (error) {
+    console.error("Get job status error:", error);
+    res.status(500).json({
+      message: error instanceof Error ? error.message : "Internal server error",
+    });
+  }
+};
+
+export const getQueueStats = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const stats = await QueueService.getQueueStats();
+    res.status(200).json({
+      message: "Queue statistics retrieved successfully",
+      data: stats,
+    });
+  } catch (error) {
+    console.error("Get queue stats error:", error);
+    res.status(500).json({
+      message: error instanceof Error ? error.message : "Internal server error",
+    });
+  }
+};
+
+export const cancelEnrollmentJob = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { jobId } = req.params;
+
+    const cancelled = await QueueService.cancelJob(jobId);
+    if (!cancelled) {
+      res.status(404).json({ message: "Job not found or cannot be cancelled" });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Job cancelled successfully",
+    });
+  } catch (error) {
+    console.error("Cancel job error:", error);
     res.status(500).json({
       message: error instanceof Error ? error.message : "Internal server error",
     });
