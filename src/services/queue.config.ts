@@ -1,6 +1,8 @@
 import Bull from "bull";
 import Redis from "ioredis";
 
+console.log("[QUEUE] Loading queue.config.ts...");
+
 // Redis connection configuration
 const redisConfig = {
   host: process.env.REDIS_HOST || "localhost",
@@ -9,24 +11,27 @@ const redisConfig = {
   db: parseInt(process.env.REDIS_DB || "0"),
   maxRetriesPerRequest: 3,
   retryDelayOnFailover: 100,
-  lazyConnect: true, // Don't connect immediately
+  //   lazyConnect: true, // Don't connect immediately
 };
+console.log("[QUEUE] Redis config:", redisConfig);
 
 // Create Redis connection with error handling
 export const redisConnection = new Redis(redisConfig);
+console.log("[QUEUE] Redis connection object created");
 
 // Handle Redis connection events
 redisConnection.on("connect", () => {
   console.log("📡 Redis connected successfully");
 });
-
+redisConnection.on("ready", () => {
+  console.log("[QUEUE] Redis connection ready");
+});
 redisConnection.on("error", (error) => {
   console.warn(
     "⚠️  Redis connection error (Queue will work without Redis in development):",
     error.message
   );
 });
-
 redisConnection.on("close", () => {
   console.log("📡 Redis connection closed");
 });
@@ -48,6 +53,7 @@ export const courseEnrollmentQueue = new Bull("course-enrollment", {
     maxStalledCount: 1,
   },
 });
+console.log("[QUEUE] Bull queue created");
 
 // Handle queue events
 courseEnrollmentQueue.on("error", (error) => {

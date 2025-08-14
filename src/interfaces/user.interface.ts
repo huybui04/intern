@@ -1,12 +1,12 @@
 import { Document } from "mongoose";
-import { UserRole } from "./enum";
 import { IPagination } from "./pagination.interface";
+import { EUserRole } from "./enum";
 
 export interface User extends Document {
   username: string;
   email: string;
   password: string;
-  role: UserRole;
+  role: EUserRole;
   resetPasswordToken?: string;
   resetPasswordExpiry?: Date;
   createdAt?: Date;
@@ -17,7 +17,7 @@ export interface UserResponse {
   _id: string;
   username: string;
   email: string;
-  role: UserRole;
+  role: EUserRole;
   resetPasswordToken?: string;
   resetPasswordExpiry?: Date;
   createdAt?: Date;
@@ -28,13 +28,13 @@ export interface CreateUserInput {
   username: string;
   email: string;
   password: string;
-  role?: UserRole;
+  role?: EUserRole;
 }
 
 export interface UpdateUserInput {
   username?: string;
   email?: string;
-  role?: UserRole;
+  role?: EUserRole;
   password?: string;
 }
 
@@ -63,6 +63,6 @@ export interface UserQueryResult {
 export interface JWTPayload {
   userId: string;
   email: string;
-  role: UserRole;
+  role: EUserRole;
 }
-export { UserRole };
+export { EUserRole };
