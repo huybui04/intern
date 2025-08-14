@@ -60,8 +60,11 @@ const courseSchema = new Schema<Course>(
     ],
     enrolledStudents: [
       {
-        type: Schema.Types.ObjectId,
-        ref: "User",
+        studentId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        studentName: { type: String, required: true },
+        enrolledAt: { type: Date, default: Date.now },
+        progress: { type: Number, default: 0, min: 0, max: 100 },
+        completedLessons: [{ type: Schema.Types.ObjectId, ref: "Lesson" }],
       },
     ],
     maxStudents: {
@@ -169,8 +172,15 @@ export class CourseModel {
     const data = await CourseMongooseModel.find(finalFilter)
       .sort(sort)
       .skip(skip)
-      .limit(limit);
-    return { data, totalCount };
+      .limit(limit)
+      .lean();
+    const dataWithCount = data.map((course: any) => ({
+      ...course,
+      studentsCount: Array.isArray(course.enrolledStudents)
+        ? course.enrolledStudents.length
+        : 0,
+    }));
+    return { data: dataWithCount, totalCount };
   }
 
   static async findAll(
@@ -183,8 +193,15 @@ export class CourseModel {
     const data = await CourseMongooseModel.find(filter)
       .sort(sort)
       .skip(skip)
-      .limit(limit);
-    return { data, totalCount };
+      .limit(limit)
+      .lean();
+    const dataWithCount = data.map((course: any) => ({
+      ...course,
+      studentsCount: Array.isArray(course.enrolledStudents)
+        ? course.enrolledStudents.length
+        : 0,
+    }));
+    return { data: dataWithCount, totalCount };
   }
 
   static async updateById(
@@ -248,8 +265,15 @@ export class CourseModel {
     const data = await CourseMongooseModel.find(finalFilter)
       .sort(sort)
       .skip(skip)
-      .limit(limit);
-    return { data, totalCount };
+      .limit(limit)
+      .lean();
+    const dataWithCount = data.map((course: any) => ({
+      ...course,
+      studentsCount: Array.isArray(course.enrolledStudents)
+        ? course.enrolledStudents.length
+        : 0,
+    }));
+    return { data: dataWithCount, totalCount };
   }
 
   static async getEnrollmentStats(

@@ -165,7 +165,8 @@ export class CourseService {
 
     // Check if student is already enrolled
     const isAlreadyEnrolled = course.enrolledStudents.some(
-      (enrollment: any) => enrollment.studentId.toString() === studentId
+      (enrollment: any) =>
+        enrollment.studentId && enrollment.studentId.toString() === studentId
     );
 
     if (isAlreadyEnrolled) {

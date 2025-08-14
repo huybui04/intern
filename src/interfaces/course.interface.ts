@@ -1,6 +1,14 @@
 import { Document, Types } from "mongoose";
 import { IPagination } from "./pagination.interface";
 
+export interface CourseEnrolledStudent {
+  studentId: Types.ObjectId;
+  studentName: string;
+  enrolledAt: Date;
+  progress: number;
+  completedLessons: Types.ObjectId[];
+}
+
 export interface Course extends Document {
   title: string;
   description: string;
@@ -13,7 +21,7 @@ export interface Course extends Document {
   thumbnailUrl?: string;
   introVideoUrl?: string;
   tags?: string[];
-  enrolledStudents: Types.ObjectId[];
+  enrolledStudents: CourseEnrolledStudent[];
   maxStudents?: number;
   isPublished: boolean;
   createdAt?: Date;

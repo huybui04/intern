@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { UserRole } from "../interfaces/user.interface";
+import { EUserRole } from "../interfaces/user.interface";
 import { JWTUtils } from "../utils/jwt.utils";
 import redisClient from "../services/redis.config";
 import { TOKEN_CACHE_PREFIX } from "../shared/constants";
@@ -8,7 +8,7 @@ export interface AuthRequest extends Request {
   user?: {
     userId: string;
     email: string;
-    role: UserRole;
+    role: EUserRole;
   };
 }
 

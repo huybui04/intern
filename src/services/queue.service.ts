@@ -1,6 +1,6 @@
 import { Job } from "bull";
 import { courseEnrollmentQueue } from "./queue.config";
-import { CourseModel } from "../models/Course";
+import { CourseModel, CourseEnrollmentMongooseModel } from "../models/Course";
 import { UserMongooseModel } from "../models/User";
 import {
   CourseEnrollmentJobData,
@@ -12,6 +12,7 @@ import {
 // Import the actual mongoose model
 import { CourseMongooseModel } from "../models/Course";
 import { EUserRole } from "../interfaces/enum";
+import { Types } from "mongoose";
 
 export class QueueService {
   /**
@@ -68,9 +69,18 @@ export class QueueService {
       await job.progress(50);
 
       // Check if student is already enrolled
-      const isAlreadyEnrolled = course.enrolledStudents.some(
-        (enrollment: any) => enrollment.studentId.toString() === studentId
-      );
+
+      const isAlreadyEnrolled =
+        Array.isArray(course.enrolledStudents) &&
+        course.enrolledStudents.some((enrollment: any) => {
+          if (!enrollment || !enrollment.studentId) return false;
+          // Support both ObjectId and string
+          const idStr =
+            typeof enrollment.studentId === "string"
+              ? enrollment.studentId
+              : enrollment.studentId.toString();
+          return idStr === studentId;
+        });
 
       if (isAlreadyEnrolled) {
         throw new Error("Student is already enrolled in this course");
@@ -78,10 +88,21 @@ export class QueueService {
 
       await job.progress(70);
 
+      // Check if student is already enrolled in separate CourseEnrollment collection
+      const existingEnrollment = await CourseEnrollmentMongooseModel.findOne({
+        courseId: new Types.ObjectId(courseId),
+        studentId: new Types.ObjectId(studentId),
+      });
+
+      if (existingEnrollment) {
+        throw new Error("Student is already enrolled in this course");
+      }
+
       // Check enrollment limit with atomic operation
       const updatedCourse = await CourseMongooseModel.findOneAndUpdate(
         {
           _id: courseId,
+          enrolledStudents: { $type: "array" },
           $or: [
             { maxStudents: { $exists: false } },
             {
@@ -92,7 +113,7 @@ export class QueueService {
         {
           $push: {
             enrolledStudents: {
-              studentId,
+              studentId: new Types.ObjectId(studentId),
               studentName: student.username,
               enrolledAt: new Date(),
               progress: 0,
@@ -107,19 +128,28 @@ export class QueueService {
         throw new Error("Course is full or not available for enrollment");
       }
 
-      await job.progress(90);
+      await job.progress(85);
 
-      // Find the newly added enrollment
-      const newEnrollment = updatedCourse.enrolledStudents.find(
-        (enrollment: any) => enrollment.studentId.toString() === studentId
-      );
+      // Create separate CourseEnrollment document
+      const newEnrollment = await CourseEnrollmentMongooseModel.create({
+        courseId: new Types.ObjectId(courseId),
+        studentId: new Types.ObjectId(studentId),
+        enrolledAt: new Date(),
+        progress: 0,
+        completedLessons: [],
+      });
 
       await job.progress(100);
 
+      // Reload course to get latest count
+      const courseAfter = await CourseMongooseModel.findById(courseId);
+      const studentsCount = courseAfter?.enrolledStudents?.length || 0;
+
       return {
         success: true,
-        enrollmentId: newEnrollment?._id?.toString(),
+        enrollmentId: newEnrollment._id?.toString(),
         message: "Successfully enrolled in course",
+        studentsCount,
       };
     } catch (error) {
       console.error("Enrollment job failed:", error);

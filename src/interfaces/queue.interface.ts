@@ -12,6 +12,7 @@ export interface EnrollmentResult {
   enrollmentId?: string;
   message?: string;
   error?: string;
+  studentsCount?: number;
 }
 
 export enum JobPriority {
