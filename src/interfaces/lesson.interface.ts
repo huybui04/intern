@@ -1,17 +1,24 @@
 import { Document, Types } from "mongoose";
 import { IPagination } from "./pagination.interface";
-import { IFilter } from "./filter.interface";
-import { ISort } from "./sort.interface";
-
 export interface Lesson extends Document {
   courseId: Types.ObjectId;
   title: string;
+  slug?: string;
   description: string;
   content: string;
   videoUrl?: string;
+  attachments?: {
+    name: string;
+    fileUrl: string;
+    fileType: string;
+  }[];
   order: number;
-  duration: number; // in minutes
+  duration: number; //in minutes
   isPublished: boolean;
+  prerequisites?: Types.ObjectId[];
+  quizId?: Types.ObjectId;
+  viewsCount?: number;
+  tags?: string[];
   createdAt?: Date;
   updatedAt?: Date;
 }

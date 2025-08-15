@@ -12,29 +12,46 @@ const lessonSchema = new Schema<Lesson>(
       ref: "Course",
       required: true,
     },
+
     title: {
       type: String,
       required: true,
       trim: true,
+    },
+    slug: {
+      type: String,
+      unique: true,
+      index: true, // SEO + URL-friendly
     },
     description: {
       type: String,
       required: true,
     },
     content: {
-      type: String,
+      type: String, // Can save HTML/Markdown
       required: true,
     },
+
+    // Media
     videoUrl: {
       type: String,
     },
+    attachments: [
+      {
+        name: String,
+        fileUrl: String,
+        fileType: String,
+      },
+    ],
+
+    // Metadata
     order: {
       type: Number,
       required: true,
       min: 1,
     },
     duration: {
-      type: Number,
+      type: Number, // in minutes
       required: true,
       min: 1,
     },
@@ -42,6 +59,20 @@ const lessonSchema = new Schema<Lesson>(
       type: Boolean,
       default: false,
     },
+
+    // Tracking
+    prerequisites: [{ type: Schema.Types.ObjectId, ref: "Lesson" }],
+    quizId: {
+      type: Schema.Types.ObjectId,
+      ref: "Assignment",
+    },
+
+    // SEO / Analytics
+    viewsCount: {
+      type: Number,
+      default: 0,
+    },
+    tags: [String],
   },
   {
     timestamps: true,

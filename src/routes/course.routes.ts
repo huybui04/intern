@@ -25,7 +25,7 @@ import {
 const courseRouter = Router();
 
 // Public routes
-courseRouter.get("/", getAllCourses);
+courseRouter.post("/", getAllCourses);
 courseRouter.get("/:id", getCourseById);
 courseRouter.get("/:id/related", getRelatedCourses);
 
