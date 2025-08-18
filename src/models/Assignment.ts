@@ -207,6 +207,29 @@ export class AssignmentModel {
     return { data, totalCount };
   }
 
+  static async findByLesson(
+    lessonId: string,
+    skip: number,
+    limit: number,
+    filter?: any,
+    sort?: any
+  ): Promise<{ data: Assignment[]; totalCount: number }> {
+    const baseFilter = { lessonId: new Types.ObjectId(lessonId) };
+    const finalFilter = filter ? { ...baseFilter, ...filter } : baseFilter;
+    const totalCount = await AssignmentMongooseModel.countDocuments(
+      finalFilter
+    );
+    const data = await AssignmentMongooseModel.find(finalFilter)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean();
+    const dataWithCount = data.map((assignment: any) => ({
+      ...assignment,
+    }));
+    return { data: dataWithCount, totalCount };
+  }
+
   static async updateById(
     id: string,
     updates: UpdateAssignmentInput

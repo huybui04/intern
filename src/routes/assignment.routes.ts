@@ -2,7 +2,6 @@ import { Router } from "express";
 import {
   createAssignment,
   getAssignmentById,
-  getAssignmentsByCourse,
   updateAssignment,
   deleteAssignment,
   publishAssignment,
@@ -12,6 +11,8 @@ import {
   getAssignmentSubmissions,
   gradeSubmission,
   autoGradeSubmission,
+  getAssignmentsByLesson,
+  getAssignmentsByCourse,
 } from "../controllers/assignment.controller";
 import { authenticateToken } from "../middlewares/auth.middleware";
 import {
@@ -24,7 +25,7 @@ const assignmentRouter = Router();
 // Public routes
 assignmentRouter.get("/:id", getAssignmentById);
 assignmentRouter.get("/course/:courseId", getAssignmentsByCourse);
-
+assignmentRouter.post("/lesson", getAssignmentsByLesson);
 // Protected routes
 assignmentRouter.use(authenticateToken);
 
@@ -52,7 +53,7 @@ assignmentRouter.put(
 // Student routes
 assignmentRouter.post("/:id/submit", requireStudent, submitAssignment);
 assignmentRouter.get(
-  "/:id/my-submission",
+  "/:id/submission",
   requireStudent,
   getStudentSubmission
 );

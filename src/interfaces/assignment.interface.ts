@@ -8,6 +8,7 @@ export interface Assignment extends Document {
   description: string;
   questions: AssignmentQuestion[];
   totalPoints: number;
+  timeLimit?: number; // seconds or minutes
   dueDate?: Date;
   isPublished: boolean;
   createdAt?: Date;
@@ -19,7 +20,7 @@ export interface AssignmentQuestion {
   question: string;
   type: "multiple_choice" | "essay" | "true_false";
   options?: string[]; // for multiple choice
-  correctAnswer?: string | number; // for multiple choice and true/false
+  correctAnswer?: string | string[] | boolean | number;
   points: number;
 }
 
@@ -28,14 +29,20 @@ export interface CreateAssignmentInput {
   lessonId?: string;
   title: string;
   description: string;
+  instructions?: string;
   questions: Omit<AssignmentQuestion, "_id">[];
+  totalPoints: number;
+  timeLimit?: number;
   dueDate?: Date;
 }
 
 export interface UpdateAssignmentInput {
   title?: string;
   description?: string;
+  instructions?: string;
   questions?: Omit<AssignmentQuestion, "_id">[];
+  totalPoints?: number;
+  timeLimit?: number;
   dueDate?: Date;
   isPublished?: boolean;
 }
@@ -47,6 +54,7 @@ export interface AssignmentSubmission extends Document {
   submittedAt: Date;
   score?: number;
   feedback?: string;
+  status: "submitted" | "graded" | "late";
   gradedAt?: Date;
   gradedBy?: Types.ObjectId;
 }

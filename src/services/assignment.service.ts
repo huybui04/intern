@@ -10,7 +10,6 @@ import {
   AssignmentQueryResult,
 } from "../interfaces/assignment.interface";
 
-import { IPagination } from "../interfaces/pagination.interface";
 import { filterToMongo } from "../utils/filterToMongo";
 import { SortToMongo } from "../utils/sortToMongo";
 import { DEFAULT_END_ROW, DEFAULT_START_ROW } from "../shared/constants";
@@ -234,19 +233,56 @@ export class AssignmentService {
 
   static async getPublishedAssignmentsByCourse(
     courseId: string,
-    pagination: IPagination = {}
-  ): Promise<Assignment[]> {
-    const startRow = pagination.startRow ?? 0;
-    const endRow = pagination.endRow ?? 20;
+    query: AssignmentQueryInput
+  ): Promise<AssignmentQueryResult> {
+    const { filterModel, sortModel } = query;
+
+    const mongoFilter = filterToMongo(filterModel);
+    const mongoSort = SortToMongo(sortModel ?? []);
+
+    const startRow = query.startRow ?? DEFAULT_START_ROW;
+    const endRow = query.endRow ?? DEFAULT_END_ROW;
     const skip = startRow;
-    const assignmentsResult = await AssignmentModel.findByCourse(
+    const limit = endRow - startRow;
+
+    const result = await AssignmentModel.findByCourse(
       courseId,
       skip,
-      endRow
+      limit,
+      mongoFilter,
+      mongoSort
     );
-    return assignmentsResult.data.filter(
-      (assignment) => assignment.isPublished
+    return {
+      rowData: result.data,
+      rowCount: result.totalCount,
+    };
+  }
+
+  static async getPublishedAssignmentsByLesson(
+    lessonId: string,
+    query: AssignmentQueryInput
+  ): Promise<AssignmentQueryResult> {
+    const { filterModel, sortModel } = query;
+
+    const mongoFilter = filterToMongo(filterModel);
+    const mongoSort = SortToMongo(sortModel ?? []);
+
+    const startRow = query.startRow ?? DEFAULT_START_ROW;
+    const endRow = query.endRow ?? DEFAULT_END_ROW;
+    const skip = startRow;
+    const limit = endRow - startRow;
+
+    const result = await AssignmentModel.findByLesson(
+      lessonId,
+      skip,
+      limit,
+      mongoFilter,
+      mongoSort
     );
+    return {
+      rowData: result.data,
+      rowCount: result.totalCount,
+    };
   }
 
   static async autoGradeSubmission(

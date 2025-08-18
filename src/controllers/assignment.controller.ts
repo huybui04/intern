@@ -6,6 +6,7 @@ import {
   GradeAssignmentInput,
 } from "../interfaces/assignment.interface";
 import { AuthRequest } from "../middlewares/auth.middleware";
+import { getPageInfo } from "../utils/getPageInfo";
 
 export const createAssignment = async (
   req: AuthRequest,
@@ -33,7 +34,7 @@ export const createAssignment = async (
 };
 
 export const getAssignmentById = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
@@ -58,30 +59,104 @@ export const getAssignmentById = async (
 };
 
 export const getAssignmentsByCourse = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const { courseId } = req.params;
-    const { published } = req.query;
+    const courseId = req.params.courseId;
+    const { filterModel, sortModel, startRow, endRow } = req.body;
 
-    let assignments;
-    if (published === "true") {
-      assignments = await AssignmentService.getPublishedAssignmentsByCourse(
-        courseId
-      );
-    } else {
-      assignments = await AssignmentService.getAssignmentsByCourse(courseId);
-    }
+    const { rowData, rowCount } =
+      await AssignmentService.getPublishedAssignmentsByCourse(courseId, {
+        filterModel,
+        sortModel,
+        startRow,
+        endRow,
+      });
+
+    const { pageSize, currentPage, totalPages } = getPageInfo(
+      startRow,
+      endRow,
+      rowCount
+    );
 
     res.status(200).json({
+      success: true,
+      errors: null,
       message: "Assignments retrieved successfully",
-      data: assignments,
+
+      data: {
+        rows: rowData,
+      },
+      rowCount: rowCount,
+      lastRow: rowCount,
+      pageInfo: {
+        startRow,
+        endRow,
+        pageSize,
+        currentPage,
+        totalPages,
+      },
     });
   } catch (error) {
     console.error("Get assignments by course error:", error);
-    res.status(400).json({
-      message: error instanceof Error ? error.message : "Bad request",
+    res.status(500).json({
+      success: false,
+      errors: error instanceof Error ? error.message : "Internal server error",
+      rows: [],
+      lastRow: 0,
+      pageInfo: null,
+    });
+  }
+};
+
+export const getAssignmentsByLesson = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { lessonId, filterModel, sortModel, startRow, endRow } = req.body;
+
+    const { rowData, rowCount } =
+      await AssignmentService.getPublishedAssignmentsByLesson(lessonId, {
+        filterModel,
+        sortModel,
+        startRow,
+        endRow,
+      });
+
+    const { pageSize, currentPage, totalPages } = getPageInfo(
+      startRow,
+      endRow,
+      rowCount
+    );
+
+    res.status(200).json({
+      success: true,
+      errors: null,
+      message: "Assignments retrieved successfully",
+
+      data: {
+        rows: rowData,
+      },
+      rowCount: rowCount,
+      lastRow: rowCount,
+      pageInfo: {
+        startRow,
+        endRow,
+        pageSize,
+        currentPage,
+        totalPages,
+      },
+    });
+  } catch (error) {
+    console.error("Get assignments by lesson error:", error);
+    res.status(500).json({
+      success: false,
+      errors: error instanceof Error ? error.message : "Internal server error",
+      rows: [],
+      lastRow: 0,
+      pageInfo: null,
     });
   }
 };
