@@ -13,6 +13,8 @@ import {
   autoGradeSubmission,
   getAssignmentsByLesson,
   getAssignmentsByCourse,
+  getAssignmentsByInstructor,
+  deleteSubmission,
 } from "../controllers/assignment.controller";
 import { authenticateToken } from "../middlewares/auth.middleware";
 import {
@@ -30,7 +32,7 @@ assignmentRouter.post("/lesson", getAssignmentsByLesson);
 assignmentRouter.use(authenticateToken);
 
 // Instructor routes
-assignmentRouter.post("/", requireInstructor, createAssignment);
+assignmentRouter.post("/", requireInstructor, getAssignmentsByInstructor);
 assignmentRouter.put("/:id", requireInstructor, updateAssignment);
 assignmentRouter.delete("/:id", requireInstructor, deleteAssignment);
 assignmentRouter.patch("/:id/publish", requireInstructor, publishAssignment);
@@ -49,14 +51,10 @@ assignmentRouter.put(
   requireInstructor,
   autoGradeSubmission
 );
-
 // Student routes
 assignmentRouter.post("/:id/submit", requireStudent, submitAssignment);
-assignmentRouter.get(
-  "/:id/submission",
-  requireStudent,
-  getStudentSubmission
-);
+assignmentRouter.get("/:id/submission", requireStudent, getStudentSubmission);
+assignmentRouter.delete("/:id/submission", requireStudent, deleteSubmission);
 assignmentRouter.get(
   "/student/my-submissions",
   requireStudent,

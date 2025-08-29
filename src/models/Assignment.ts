@@ -321,4 +321,15 @@ export class AssignmentModel {
       studentId: new Types.ObjectId(studentId),
     });
   }
+
+  static async deleteSubmission(
+    assignmentId: string,
+    studentId: string
+  ): Promise<boolean> {
+    const result = await AssignmentSubmissionMongooseModel.findOneAndDelete({
+      assignmentId: new Types.ObjectId(assignmentId),
+      studentId: new Types.ObjectId(studentId),
+    });
+    return !!result;
+  }
 }

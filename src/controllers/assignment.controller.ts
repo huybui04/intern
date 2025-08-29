@@ -391,3 +391,53 @@ export const autoGradeSubmission = async (
     });
   }
 };
+
+export const getAssignmentsByInstructor = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const instructorId = req.user!.userId;
+
+    const submissions = await AssignmentService.getAssignmentsByInstructor(
+      instructorId
+    );
+    res.status(200).json({
+      message: "Assignment submissions retrieved successfully",
+      data: submissions,
+    });
+  } catch (error) {
+    console.error("Get assignment submissions error:", error);
+    res.status(400).json({
+      message: error instanceof Error ? error.message : "Bad request",
+    });
+  }
+};
+
+export const deleteSubmission = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params; // assignmentId
+    const studentId = req.user!.userId;
+
+    const deleted = await AssignmentService.deleteSubmission(id, studentId);
+
+    if (deleted) {
+      res.status(200).json({
+        message: "Submission deleted successfully",
+      });
+    } else {
+      res.status(404).json({
+        message: "Submission not found",
+      });
+    }
+  } catch (error) {
+    console.error("Delete submission error:", error);
+    res.status(400).json({
+      message:
+        error instanceof Error ? error.message : "Failed to delete submission",
+    });
+  }
+};

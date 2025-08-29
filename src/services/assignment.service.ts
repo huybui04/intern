@@ -46,7 +46,7 @@ export class AssignmentService {
     // Validate course exists and instructor owns it
     const course = await CourseModel.findById(assignmentData.courseId);
     if (!course) {
-      throw new Error("Course not found");
+      throw new Error("Assignment not found");
     }
 
     if (course.instructorId.toString() !== instructorId) {
@@ -148,11 +148,64 @@ export class AssignmentService {
       throw new Error("Assignment due date has passed");
     }
 
-    return await AssignmentModel.submitAssignment(
+    // Tự động chấm điểm
+    let totalScore = 0;
+    const gradedAnswers = answers.map((answer) => {
+      const question = assignment.questions.find(
+        (q) => q._id?.toString() === answer.questionId
+      );
+
+      if (question) {
+        let isCorrect = false;
+
+        // Kiểm tra đáp án theo loại câu hỏi
+        switch (question.type) {
+          case "multiple_choice":
+            isCorrect = answer.answer === question.correctAnswer;
+            break;
+          case "true_false":
+            isCorrect = answer.answer === question.correctAnswer;
+            break;
+          case "essay":
+            // Essay không thể tự động chấm, cần chấm thủ công
+            isCorrect = false;
+            break;
+          default:
+            isCorrect = false;
+        }
+
+        if (isCorrect) {
+          totalScore += question.points;
+        }
+      }
+
+      return answer;
+    });
+
+    // Tính điểm dựa trên tổng điểm có thể đạt được (chỉ tính các câu không phải essay)
+    const autoGradableQuestions = assignment.questions.filter(
+      (q) => q.type !== "essay"
+    );
+    const maxAutoScore = autoGradableQuestions.reduce(
+      (sum, q) => sum + q.points,
+      0
+    );
+
+    const submission = await AssignmentModel.submitAssignment(
       assignmentId,
       studentId,
-      answers
+      gradedAnswers
     );
+
+    // Cập nhật điểm số cho submission
+    if (submission) {
+      submission.score = totalScore;
+      submission.gradedAt = new Date();
+      submission.status = "graded";
+      await submission.save();
+    }
+
+    return submission;
   }
 
   static async getStudentSubmission(
@@ -329,5 +382,51 @@ export class AssignmentService {
       { score, feedback: "Auto-graded" },
       instructorId
     );
+  }
+
+  static async getAssignmentsByInstructor(
+    instructorId: string
+  ): Promise<Assignment[]> {
+    // Lấy tất cả course mà instructor này sở hữu
+    const courses = await CourseModel.findByInstructor(instructorId, 0, 1000);
+    const courseIds = courses.data.map((c: any) => c._id.toString());
+
+    // Lấy tất cả assignment thuộc các course này
+    const assignments: Assignment[] = [];
+    for (const courseId of courseIds) {
+      const courseAssignments = await AssignmentModel.findByCourse(
+        courseId,
+        0,
+        1000
+      );
+      assignments.push(...courseAssignments.data);
+    }
+    return assignments;
+  }
+
+  static async deleteSubmission(
+    assignmentId: string,
+    studentId: string
+  ): Promise<boolean> {
+    if (!assignmentId || !studentId) {
+      throw new Error("Assignment ID and Student ID are required");
+    }
+
+    // Check if assignment exists
+    const assignment = await AssignmentModel.findById(assignmentId);
+    if (!assignment) {
+      throw new Error("Assignment not found");
+    }
+
+    // Check if submission exists
+    const submission = await AssignmentModel.findSubmission(
+      assignmentId,
+      studentId
+    );
+    if (!submission) {
+      throw new Error("Submission not found");
+    }
+
+    return await AssignmentModel.deleteSubmission(assignmentId, studentId);
   }
 }

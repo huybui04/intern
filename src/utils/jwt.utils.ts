@@ -12,7 +12,7 @@ export interface TokenPair {
 
 export class JWTUtils {
   static generateTokens(payload: JWTPayload): TokenPair {
-    const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: "15m" });
+    const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: "120m" });
     const refreshToken = jwt.sign(payload, JWT_REFRESH_SECRET, {
       expiresIn: "7d",
     });
