@@ -64,19 +64,24 @@ export const getAssignmentsByCourse = async (
 ): Promise<void> => {
   try {
     const courseId = req.params.courseId;
-    const { filterModel, sortModel, startRow, endRow } = req.body;
+    const { filterModel, sortModel, startRow, endRow } = req.query;
 
     const { rowData, rowCount } =
       await AssignmentService.getPublishedAssignmentsByCourse(courseId, {
-        filterModel,
-        sortModel,
-        startRow,
-        endRow,
+        filterModel: filterModel
+          ? JSON.parse(filterModel as string)
+          : undefined,
+        sortModel: sortModel ? JSON.parse(sortModel as string) : undefined,
+        startRow: startRow ? parseInt(startRow as string) : undefined,
+        endRow: endRow ? parseInt(endRow as string) : undefined,
       });
 
+    const startRowNum = startRow ? parseInt(startRow as string) : 0;
+    const endRowNum = endRow ? parseInt(endRow as string) : 20;
+
     const { pageSize, currentPage, totalPages } = getPageInfo(
-      startRow,
-      endRow,
+      startRowNum,
+      endRowNum,
       rowCount
     );
 
@@ -91,8 +96,8 @@ export const getAssignmentsByCourse = async (
       rowCount: rowCount,
       lastRow: rowCount,
       pageInfo: {
-        startRow,
-        endRow,
+        startRow: startRowNum,
+        endRow: endRowNum,
         pageSize,
         currentPage,
         totalPages,
@@ -438,6 +443,42 @@ export const deleteSubmission = async (
     res.status(400).json({
       message:
         error instanceof Error ? error.message : "Failed to delete submission",
+    });
+  }
+};
+
+export const getSubmissionDetailWithAnswers = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { submissionId } = req.params;
+    const instructorId = req.user!.userId;
+
+    if (!submissionId) {
+      res.status(400).json({
+        message: "Submission ID is required",
+      });
+      return;
+    }
+
+    const submissionDetail =
+      await AssignmentService.getSubmissionDetailWithAnswers(
+        submissionId,
+        instructorId
+      );
+
+    res.status(200).json({
+      message: "Submission detail retrieved successfully",
+      data: submissionDetail,
+    });
+  } catch (error) {
+    console.error("Get submission detail error:", error);
+    res.status(400).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to get submission detail",
     });
   }
 };

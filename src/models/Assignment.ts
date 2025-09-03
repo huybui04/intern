@@ -294,7 +294,7 @@ export class AssignmentModel {
   ): Promise<AssignmentSubmission[]> {
     return AssignmentSubmissionMongooseModel.find({
       assignmentId: new Types.ObjectId(assignmentId),
-    });
+    }).populate("studentId", "username email avatar");
   }
 
   static async gradeSubmission(
@@ -331,5 +331,13 @@ export class AssignmentModel {
       studentId: new Types.ObjectId(studentId),
     });
     return !!result;
+  }
+
+  static async getSubmissionDetailById(
+    submissionId: string
+  ): Promise<AssignmentSubmission | null> {
+    return AssignmentSubmissionMongooseModel.findById(submissionId)
+      .populate("assignmentId")
+      .populate("studentId", "username email avatar");
   }
 }

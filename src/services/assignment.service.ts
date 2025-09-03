@@ -290,7 +290,9 @@ export class AssignmentService {
   ): Promise<AssignmentQueryResult> {
     const { filterModel, sortModel } = query;
 
-    const mongoFilter = filterToMongo(filterModel);
+    // Add isPublished: true filter to only get published assignments
+    const baseFilter = { isPublished: true };
+    const mongoFilter = { ...baseFilter, ...filterToMongo(filterModel) };
     const mongoSort = SortToMongo(sortModel ?? []);
 
     const startRow = query.startRow ?? DEFAULT_START_ROW;
@@ -428,5 +430,107 @@ export class AssignmentService {
     }
 
     return await AssignmentModel.deleteSubmission(assignmentId, studentId);
+  }
+
+  static async getSubmissionDetailWithAnswers(
+    submissionId: string,
+    instructorId: string
+  ): Promise<any> {
+    if (!submissionId || submissionId === "undefined") {
+      throw new Error("Submission ID is required");
+    }
+
+    // Validate ObjectId format
+    if (!/^[0-9a-fA-F]{24}$/.test(submissionId)) {
+      throw new Error("Invalid submission ID format");
+    }
+
+    // Get submission with populated assignment and student info
+    const submission = await AssignmentModel.getSubmissionDetailById(
+      submissionId
+    );
+    if (!submission) {
+      throw new Error("Submission not found");
+    }
+
+    // Extract assignment from populated data or get assignment ID
+    let assignment: any;
+    let assignmentId: string;
+
+    if (
+      typeof submission.assignmentId === "object" &&
+      submission.assignmentId._id
+    ) {
+      // assignmentId is populated
+      assignment = submission.assignmentId;
+      assignmentId = assignment._id.toString();
+    } else {
+      // assignmentId is just an ID
+      assignmentId = submission.assignmentId.toString();
+      assignment = await AssignmentModel.findById(assignmentId);
+      if (!assignment) {
+        throw new Error("Assignment not found");
+      }
+    }
+
+    // Check if instructor owns the course
+    const course = await CourseModel.findById(assignment.courseId.toString());
+    if (!course || course.instructorId.toString() !== instructorId) {
+      throw new Error("Only the course instructor can view submission details");
+    }
+
+    // Combine submission answers with assignment questions
+    const detailedAnswers = submission.answers.map((answer: any) => {
+      const question = assignment.questions.find(
+        (q: any) => q._id.toString() === answer.questionId.toString()
+      );
+
+      let isCorrect: boolean | null = false;
+      if (question) {
+        switch (question.type) {
+          case "multiple_choice":
+          case "true_false":
+            isCorrect = answer.answer === question.correctAnswer;
+            break;
+          case "essay":
+            // Essay questions can't be auto-graded
+            isCorrect = null;
+            break;
+        }
+      }
+
+      return {
+        questionId: answer.questionId,
+        question: question ? question.question : "Question not found",
+        questionType: question ? question.type : "unknown",
+        options: question ? question.options : [],
+        correctAnswer: question ? question.correctAnswer : null,
+        studentAnswer: answer.answer,
+        isCorrect,
+        points: question ? question.points : 0,
+      };
+    });
+
+    return {
+      submissionId: submission._id,
+      assignmentId: assignmentId,
+      studentId: submission.studentId,
+      submittedAt: submission.submittedAt,
+      score: submission.score,
+      feedback: submission.feedback,
+      status: submission.status,
+      gradedAt: submission.gradedAt,
+      gradedBy: submission.gradedBy,
+      assignment: {
+        title: assignment.title,
+        description: assignment.description,
+        totalPoints: assignment.totalPoints,
+        dueDate: assignment.dueDate,
+      },
+      answers: detailedAnswers,
+      totalQuestions: assignment.questions.length,
+      correctAnswers: detailedAnswers.filter((a: any) => a.isCorrect === true)
+        .length,
+    };
   }
 }

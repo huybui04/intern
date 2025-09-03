@@ -33,7 +33,7 @@ courseRouter.get("/:id/related", getRelatedCourses);
 courseRouter.use(authenticateToken);
 
 // Instructor routes
-courseRouter.post("/", requireInstructor, createCourse);
+courseRouter.post("/create", requireInstructor, createCourse);
 courseRouter.get(
   "/instructor/my-courses",
   requireInstructor,

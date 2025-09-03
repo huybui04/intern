@@ -11,3 +11,11 @@ export enum EQueueJobStatus {
   FAILED = "failed",
   DELAYED = "delayed",
 }
+
+export enum ECourseCategory {
+  PROGRAMMING = "programming",
+  DESIGN = "design",
+  BUSINESS = "business",
+  MARKETING = "marketing",
+  LANGUAGE = "language",
+}

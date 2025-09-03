@@ -1,5 +1,6 @@
 import { Document, Types } from "mongoose";
 import { IPagination } from "./pagination.interface";
+import { ECourseCategory } from "./enum";
 
 export interface CourseEnrolledStudent {
   studentId: Types.ObjectId;
@@ -14,7 +15,7 @@ export interface Course extends Document {
   description: string;
   instructorId: Types.ObjectId;
   instructorName: string;
-  category: string;
+  category: ECourseCategory;
   difficulty: "beginner" | "intermediate" | "advanced";
   duration: number; // in hours
   price: number;
@@ -31,7 +32,7 @@ export interface Course extends Document {
 export interface CreateCourseInput {
   title: string;
   description: string;
-  category: string;
+  category: ECourseCategory;
   difficulty: "beginner" | "intermediate" | "advanced";
   duration: number;
   price: number;
@@ -44,7 +45,7 @@ export interface CreateCourseInput {
 export interface UpdateCourseInput {
   title?: string;
   description?: string;
-  category?: string;
+  category?: ECourseCategory;
   difficulty?: "beginner" | "intermediate" | "advanced";
   duration?: number;
   price?: number;
