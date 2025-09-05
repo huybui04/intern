@@ -13,6 +13,7 @@ import {
 import { filterToMongo } from "../utils/filterToMongo";
 import { SortToMongo } from "../utils/sortToMongo";
 import { DEFAULT_END_ROW, DEFAULT_START_ROW } from "../shared/constants";
+import { isValidObjectId, toObjectId } from "../utils/objectId.utils";
 
 export class AssignmentService {
   static async getAssignments(
@@ -245,15 +246,15 @@ export class AssignmentService {
     gradeData: GradeAssignmentInput,
     instructorId: string
   ): Promise<AssignmentSubmission | null> {
-    if (!submissionId) {
-      throw new Error("Submission ID is required");
+    if (!isValidObjectId(submissionId)) {
+      throw new Error(`Invalid submission ID format: ${submissionId}`);
+    }
+    if (!isValidObjectId(instructorId)) {
+      throw new Error(`Invalid instructor ID format: ${instructorId}`);
     }
 
-    // Get submission to find assignment
-    const submissions = await AssignmentModel.getSubmissionsByAssignment("");
-    const submission = submissions.find(
-      (s) => s._id?.toString() === submissionId
-    );
+    // Get submission directly by ID
+    const submission = await AssignmentModel.getSubmissionById(submissionId);
     if (!submission) {
       throw new Error("Submission not found");
     }
@@ -272,16 +273,35 @@ export class AssignmentService {
       throw new Error("Only the course instructor can grade this submission");
     }
 
+    // Validate input
+    if (gradeData.score === undefined || gradeData.score === null) {
+      throw new Error("Score is required");
+    }
+    
+    if (typeof gradeData.score !== 'number' || isNaN(gradeData.score)) {
+      throw new Error(`Invalid score value: ${gradeData.score}. Score must be a valid number.`);
+    }
+
     // Validate score
     if (gradeData.score < 0 || gradeData.score > assignment.totalPoints) {
       throw new Error(`Score must be between 0 and ${assignment.totalPoints}`);
     }
 
-    return await AssignmentModel.gradeSubmission(
+    console.log("Service - grading submission:", {
+      submissionId,
+      gradeData,
+      instructorId,
+      totalPoints: assignment.totalPoints
+    });
+
+    const result = await AssignmentModel.gradeSubmission(
       submissionId,
       gradeData,
       instructorId
     );
+
+    console.log("Service - grade result:", result);
+    return result;
   }
 
   static async getPublishedAssignmentsByCourse(

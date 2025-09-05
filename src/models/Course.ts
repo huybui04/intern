@@ -38,7 +38,7 @@ const courseSchema = new Schema<Course>(
     },
     duration: {
       type: Number,
-      required: true,
+      required: false,
       min: 0,
     },
     price: {

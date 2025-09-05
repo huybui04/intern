@@ -353,8 +353,14 @@ export const gradeSubmission = async (
 ): Promise<void> => {
   try {
     const { submissionId } = req.params;
-    const gradeData: GradeAssignmentInput = req.body;
+    const requestBody = req.body;
     const instructorId = req.user!.userId;
+
+    const gradeData: GradeAssignmentInput = {
+      score: requestBody.grade || requestBody.score,
+      feedback: requestBody.feedback
+    };
+
 
     const gradedSubmission = await AssignmentService.gradeSubmission(
       submissionId,

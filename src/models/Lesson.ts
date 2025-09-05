@@ -52,7 +52,7 @@ const lessonSchema = new Schema<Lesson>(
     },
     duration: {
       type: Number, // in minutes
-      required: true,
+      required: false,
       min: 1,
     },
     isPublished: {
@@ -61,11 +61,11 @@ const lessonSchema = new Schema<Lesson>(
     },
 
     // Tracking
-    prerequisites: [{ type: Schema.Types.ObjectId, ref: "Lesson" }],
-    quizId: {
-      type: Schema.Types.ObjectId,
-      ref: "Assignment",
-    },
+    // prerequisites: [{ type: Schema.Types.ObjectId, ref: "Lesson" }],
+    // quizId: {
+    //   type: Schema.Types.ObjectId,
+    //   ref: "Assignment",
+    // },
 
     // SEO / Analytics
     viewsCount: {

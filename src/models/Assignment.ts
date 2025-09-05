@@ -6,6 +6,7 @@ import {
   UpdateAssignmentInput,
   GradeAssignmentInput,
 } from "../interfaces/assignment.interface";
+import { toObjectId, isValidObjectId } from "../utils/objectId.utils";
 
 // Assignment Question Schema
 const assignmentQuestionSchema = new Schema({
@@ -107,6 +108,11 @@ const assignmentSubmissionSchema = new Schema<AssignmentSubmission>(
     feedback: {
       type: String,
     },
+    status: {
+      type: String,
+      enum: ["submitted", "graded", "late"],
+      default: "submitted",
+    },
     gradedAt: {
       type: Date,
     },
@@ -172,9 +178,9 @@ export class AssignmentModel {
 
     const newAssignment = await AssignmentMongooseModel.create({
       ...assignmentData,
-      courseId: new Types.ObjectId(assignmentData.courseId),
+      courseId: toObjectId(assignmentData.courseId),
       lessonId: assignmentData.lessonId
-        ? new Types.ObjectId(assignmentData.lessonId)
+        ? toObjectId(assignmentData.lessonId)
         : undefined,
       totalPoints,
       isPublished: false,
@@ -194,7 +200,11 @@ export class AssignmentModel {
     filter?: any,
     sort?: any
   ): Promise<{ data: Assignment[]; totalCount: number }> {
-    const baseFilter = { courseId: new Types.ObjectId(courseId) };
+    if (!isValidObjectId(courseId)) {
+      throw new Error(`Invalid course ID format: ${courseId}`);
+    }
+    
+    const baseFilter = { courseId: toObjectId(courseId) };
     const finalFilter = filter ? { ...baseFilter, ...filter } : baseFilter;
     const totalCount = await AssignmentMongooseModel.countDocuments(
       finalFilter
@@ -214,7 +224,11 @@ export class AssignmentModel {
     filter?: any,
     sort?: any
   ): Promise<{ data: Assignment[]; totalCount: number }> {
-    const baseFilter = { lessonId: new Types.ObjectId(lessonId) };
+    if (!isValidObjectId(lessonId)) {
+      throw new Error(`Invalid lesson ID format: ${lessonId}`);
+    }
+    
+    const baseFilter = { lessonId: toObjectId(lessonId) };
     const finalFilter = filter ? { ...baseFilter, ...filter } : baseFilter;
     const totalCount = await AssignmentMongooseModel.countDocuments(
       finalFilter
@@ -259,10 +273,17 @@ export class AssignmentModel {
     studentId: string,
     answers: any[]
   ): Promise<AssignmentSubmission> {
+    if (!isValidObjectId(assignmentId)) {
+      throw new Error(`Invalid assignment ID format: ${assignmentId}`);
+    }
+    if (!isValidObjectId(studentId)) {
+      throw new Error(`Invalid student ID format: ${studentId}`);
+    }
+
     // Check if already submitted
     const existingSubmission = await AssignmentSubmissionMongooseModel.findOne({
-      assignmentId: new Types.ObjectId(assignmentId),
-      studentId: new Types.ObjectId(studentId),
+      assignmentId: toObjectId(assignmentId),
+      studentId: toObjectId(studentId),
     });
 
     if (existingSubmission) {
@@ -270,8 +291,8 @@ export class AssignmentModel {
     }
 
     const submission = await AssignmentSubmissionMongooseModel.create({
-      assignmentId: new Types.ObjectId(assignmentId),
-      studentId: new Types.ObjectId(studentId),
+      assignmentId: toObjectId(assignmentId),
+      studentId: toObjectId(studentId),
       answers,
       submittedAt: new Date(),
     });
@@ -283,17 +304,28 @@ export class AssignmentModel {
     assignmentId: string,
     studentId: string
   ): Promise<AssignmentSubmission | null> {
+    if (!isValidObjectId(assignmentId)) {
+      throw new Error(`Invalid assignment ID format: ${assignmentId}`);
+    }
+    if (!isValidObjectId(studentId)) {
+      throw new Error(`Invalid student ID format: ${studentId}`);
+    }
+
     return AssignmentSubmissionMongooseModel.findOne({
-      assignmentId: new Types.ObjectId(assignmentId),
-      studentId: new Types.ObjectId(studentId),
+      assignmentId: toObjectId(assignmentId),
+      studentId: toObjectId(studentId),
     });
   }
 
   static async getSubmissionsByAssignment(
     assignmentId: string
   ): Promise<AssignmentSubmission[]> {
+    if (!isValidObjectId(assignmentId)) {
+      throw new Error(`Invalid assignment ID format: ${assignmentId}`);
+    }
+
     return AssignmentSubmissionMongooseModel.find({
-      assignmentId: new Types.ObjectId(assignmentId),
+      assignmentId: toObjectId(assignmentId),
     }).populate("studentId", "username email avatar");
   }
 
@@ -302,33 +334,93 @@ export class AssignmentModel {
     gradeData: GradeAssignmentInput,
     gradedBy: string
   ): Promise<AssignmentSubmission | null> {
-    return AssignmentSubmissionMongooseModel.findByIdAndUpdate(
+    // Validate ObjectId formats
+    if (!isValidObjectId(submissionId)) {
+      throw new Error(`Invalid submission ID format: ${submissionId}`);
+    }
+    if (!isValidObjectId(gradedBy)) {
+      throw new Error(`Invalid grader ID format: ${gradedBy}`);
+    }
+
+    console.log("Grading submission:", {
       submissionId,
-      {
-        score: gradeData.score,
-        feedback: gradeData.feedback,
-        gradedAt: new Date(),
-        gradedBy: new Types.ObjectId(gradedBy),
-      },
-      { new: true }
+      score: gradeData.score,
+      scoreType: typeof gradeData.score,
+      feedback: gradeData.feedback,
+      gradedBy,
+      fullGradeData: gradeData
+    });
+
+    // Validate and parse score
+    let parsedScore: number;
+    if (gradeData.score === undefined || gradeData.score === null) {
+      throw new Error("Score is required");
+    }
+    
+    if (typeof gradeData.score === 'string') {
+      parsedScore = parseFloat(gradeData.score);
+    } else {
+      parsedScore = Number(gradeData.score);
+    }
+    
+    if (isNaN(parsedScore)) {
+      throw new Error(`Invalid score value: ${gradeData.score}. Score must be a valid number.`);
+    }
+
+    const updateData = {
+      score: parsedScore,
+      feedback: gradeData.feedback || "",
+      status: "graded" as const,
+      gradedAt: new Date(),
+      gradedBy: toObjectId(gradedBy),
+    };
+
+    console.log("Update data:", updateData);
+
+    const result = await AssignmentSubmissionMongooseModel.findByIdAndUpdate(
+      toObjectId(submissionId),
+      updateData,
+      { new: true, runValidators: true }
     );
+
+    console.log("Grade submission result:", result);
+    return result;
   }
 
   static async getStudentSubmissions(
     studentId: string
   ): Promise<AssignmentSubmission[]> {
+    if (!isValidObjectId(studentId)) {
+      throw new Error(`Invalid student ID format: ${studentId}`);
+    }
     return AssignmentSubmissionMongooseModel.find({
-      studentId: new Types.ObjectId(studentId),
+      studentId: toObjectId(studentId),
     });
+  }
+
+  static async getSubmissionById(
+    submissionId: string
+  ): Promise<AssignmentSubmission | null> {
+    if (!isValidObjectId(submissionId)) {
+      throw new Error(`Invalid submission ID format: ${submissionId}`);
+    }
+    return AssignmentSubmissionMongooseModel.findById(toObjectId(submissionId));
   }
 
   static async deleteSubmission(
     assignmentId: string,
     studentId: string
   ): Promise<boolean> {
+    if (!isValidObjectId(assignmentId)) {
+      throw new Error(`Invalid assignment ID format: ${assignmentId}`);
+    }
+    if (!isValidObjectId(studentId)) {
+      throw new Error(`Invalid student ID format: ${studentId}`);
+    }
+
     const result = await AssignmentSubmissionMongooseModel.findOneAndDelete({
-      assignmentId: new Types.ObjectId(assignmentId),
-      studentId: new Types.ObjectId(studentId),
+      assignmentId: toObjectId(assignmentId),
+      studentId: toObjectId(studentId),
     });
     return !!result;
   }

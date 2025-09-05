@@ -13,10 +13,10 @@ export interface Lesson extends Document {
     fileType: string;
   }[];
   order: number;
-  duration: number; //in minutes
+  duration?: number; //in minutes
   isPublished: boolean;
   prerequisites?: Types.ObjectId[];
-  quizId?: Types.ObjectId;
+  // quizId?: Types.ObjectId;
   viewsCount?: number;
   tags?: string[];
   createdAt?: Date;
@@ -30,7 +30,7 @@ export interface CreateLessonInput {
   content: string;
   videoUrl?: string;
   order: number;
-  duration: number;
+  duration?: number;
 }
 
 export interface UpdateLessonInput {

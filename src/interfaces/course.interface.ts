@@ -17,7 +17,7 @@ export interface Course extends Document {
   instructorName: string;
   category: ECourseCategory;
   difficulty: "beginner" | "intermediate" | "advanced";
-  duration: number; // in hours
+  duration?: number; // in hours
   price: number;
   thumbnailUrl?: string;
   introVideoUrl?: string;
@@ -34,7 +34,7 @@ export interface CreateCourseInput {
   description: string;
   category: ECourseCategory;
   difficulty: "beginner" | "intermediate" | "advanced";
-  duration: number;
+  duration?: number;
   price: number;
   thumbnailUrl?: string;
   introVideoUrl?: string;
