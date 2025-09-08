@@ -34,7 +34,7 @@ courseRouter.use(authenticateToken);
 
 // Instructor routes
 courseRouter.post("/create", requireInstructor, createCourse);
-courseRouter.get(
+courseRouter.post(
   "/instructor/my-courses",
   requireInstructor,
   getInstructorCourses

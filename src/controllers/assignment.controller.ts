@@ -361,12 +361,18 @@ export const gradeSubmission = async (
       feedback: requestBody.feedback
     };
 
+    console.log("Controller - grading submission:", {
+      submissionId,
+      gradeData,
+      instructorId
+    });
 
     const gradedSubmission = await AssignmentService.gradeSubmission(
       submissionId,
       gradeData,
       instructorId
     );
+
     res.status(200).json({
       message: "Submission graded successfully",
       data: gradedSubmission,
@@ -391,14 +397,37 @@ export const autoGradeSubmission = async (
       submissionId,
       instructorId
     );
+
     res.status(200).json({
-      message: "Submission auto-graded successfully",
+      message: "Auto-grading completed successfully",
+      note: "Only multiple choice and true/false questions were auto-graded. Essay questions require manual grading.",
       data: gradedSubmission,
     });
   } catch (error) {
     console.error("Auto-grade submission error:", error);
     res.status(400).json({
       message: error instanceof Error ? error.message : "Auto-grading failed",
+    });
+  }
+};
+
+export const checkAutoGradeAvailable = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params; // assignmentId
+    
+    const autoGradeInfo = await AssignmentService.canAutoGrade(id);
+    
+    res.status(200).json({
+      message: "Auto-grade availability checked successfully",
+      data: autoGradeInfo,
+    });
+  } catch (error) {
+    console.error("Check auto-grade availability error:", error);
+    res.status(400).json({
+      message: error instanceof Error ? error.message : "Failed to check auto-grade availability",
     });
   }
 };

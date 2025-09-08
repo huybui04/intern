@@ -16,6 +16,7 @@ import {
   getAssignmentsByInstructor,
   deleteSubmission,
   getSubmissionDetailWithAnswers,
+  checkAutoGradeAvailable,
 } from "../controllers/assignment.controller";
 import { authenticateToken } from "../middlewares/auth.middleware";
 import {
@@ -34,6 +35,7 @@ assignmentRouter.use(authenticateToken);
 
 // Instructor routes
 assignmentRouter.post("/", requireInstructor, getAssignmentsByInstructor);
+assignmentRouter.post("/create", requireInstructor, createAssignment);
 assignmentRouter.put("/:id", requireInstructor, updateAssignment);
 assignmentRouter.delete("/:id", requireInstructor, deleteAssignment);
 assignmentRouter.patch("/:id/publish", requireInstructor, publishAssignment);
@@ -46,6 +48,11 @@ assignmentRouter.put(
   "/submission/:submissionId/grade",
   requireInstructor,
   gradeSubmission
+);
+assignmentRouter.get(
+  "/:id/auto-grade-available",
+  requireInstructor,
+  checkAutoGradeAvailable
 );
 assignmentRouter.put(
   "/submissions/:submissionId/auto-grade",

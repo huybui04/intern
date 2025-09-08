@@ -280,7 +280,11 @@ export class AssignmentModel {
       throw new Error(`Invalid student ID format: ${studentId}`);
     }
 
-    // Check if already submitted
+    const assignment = await AssignmentMongooseModel.findById(toObjectId(assignmentId));
+    if (!assignment) {
+      throw new Error("Assignment not found");
+    }
+
     const existingSubmission = await AssignmentSubmissionMongooseModel.findOne({
       assignmentId: toObjectId(assignmentId),
       studentId: toObjectId(studentId),
@@ -290,11 +294,25 @@ export class AssignmentModel {
       throw new Error("Assignment already submitted");
     }
 
+    const now = new Date();
+    const isLate = assignment.dueDate && now > assignment.dueDate;
+    const status = isLate ? "late" : "submitted";
+
+    console.log("Creating submission:", {
+      assignmentId,
+      studentId,
+      status,
+      isLate,
+      dueDate: assignment.dueDate,
+      currentTime: now
+    });
+
     const submission = await AssignmentSubmissionMongooseModel.create({
       assignmentId: toObjectId(assignmentId),
       studentId: toObjectId(studentId),
       answers,
-      submittedAt: new Date(),
+      submittedAt: now,
+      status: status,
     });
 
     return submission;
@@ -367,10 +385,15 @@ export class AssignmentModel {
       throw new Error(`Invalid score value: ${gradeData.score}. Score must be a valid number.`);
     }
 
+    const currentSubmission = await AssignmentSubmissionMongooseModel.findById(toObjectId(submissionId));
+    if (!currentSubmission) {
+      throw new Error("Submission not found");
+    }
+
     const updateData = {
       score: parsedScore,
       feedback: gradeData.feedback || "",
-      status: "graded" as const,
+      status: "graded" as const, // Always set to "graded" when manually graded
       gradedAt: new Date(),
       gradedBy: toObjectId(gradedBy),
     };

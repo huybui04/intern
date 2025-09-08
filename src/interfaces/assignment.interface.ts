@@ -34,6 +34,7 @@ export interface CreateAssignmentInput {
   totalPoints: number;
   timeLimit?: number;
   dueDate?: Date;
+  isPublished?: boolean;
 }
 
 export interface UpdateAssignmentInput {

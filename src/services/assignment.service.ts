@@ -144,67 +144,25 @@ export class AssignmentService {
       throw new Error("Assignment is not published");
     }
 
-    // Check if due date has passed
-    if (assignment.dueDate && new Date() > assignment.dueDate) {
-      throw new Error("Assignment due date has passed");
-    }
+    // Check if due date has passed (but still allow submission, just mark as late)
+    const now = new Date();
+    const isLate = assignment.dueDate && now > assignment.dueDate;
 
-    // Tự động chấm điểm
-    let totalScore = 0;
-    const gradedAnswers = answers.map((answer) => {
-      const question = assignment.questions.find(
-        (q) => q._id?.toString() === answer.questionId
-      );
-
-      if (question) {
-        let isCorrect = false;
-
-        // Kiểm tra đáp án theo loại câu hỏi
-        switch (question.type) {
-          case "multiple_choice":
-            isCorrect = answer.answer === question.correctAnswer;
-            break;
-          case "true_false":
-            isCorrect = answer.answer === question.correctAnswer;
-            break;
-          case "essay":
-            // Essay không thể tự động chấm, cần chấm thủ công
-            isCorrect = false;
-            break;
-          default:
-            isCorrect = false;
-        }
-
-        if (isCorrect) {
-          totalScore += question.points;
-        }
-      }
-
-      return answer;
-    });
-
-    // Tính điểm dựa trên tổng điểm có thể đạt được (chỉ tính các câu không phải essay)
-    const autoGradableQuestions = assignment.questions.filter(
-      (q) => q.type !== "essay"
-    );
-    const maxAutoScore = autoGradableQuestions.reduce(
-      (sum, q) => sum + q.points,
-      0
-    );
-
+    // Simply submit without auto-grading
+    // Auto-grading should only happen when instructor explicitly requests it
     const submission = await AssignmentModel.submitAssignment(
       assignmentId,
       studentId,
-      gradedAnswers
+      answers
     );
 
-    // Cập nhật điểm số cho submission
-    if (submission) {
-      submission.score = totalScore;
-      submission.gradedAt = new Date();
-      submission.status = "graded";
-      await submission.save();
-    }
+    console.log("Assignment submitted:", {
+      assignmentId,
+      studentId,
+      submissionId: submission._id,
+      status: submission.status,
+      isLate: isLate
+    });
 
     return submission;
   }
@@ -364,11 +322,16 @@ export class AssignmentService {
     submissionId: string,
     instructorId: string
   ): Promise<AssignmentSubmission | null> {
-    // Get submission
-    const submissions = await AssignmentModel.getSubmissionsByAssignment("");
-    const submission = submissions.find(
-      (s) => s._id?.toString() === submissionId
-    );
+    // Validate ObjectId
+    if (!isValidObjectId(submissionId)) {
+      throw new Error(`Invalid submission ID format: ${submissionId}`);
+    }
+    if (!isValidObjectId(instructorId)) {
+      throw new Error(`Invalid instructor ID format: ${instructorId}`);
+    }
+
+    // Get submission directly
+    const submission = await AssignmentModel.getSubmissionById(submissionId);
     if (!submission) {
       throw new Error("Submission not found");
     }
@@ -381,29 +344,115 @@ export class AssignmentService {
       throw new Error("Assignment not found");
     }
 
-    // Calculate score based on correct answers
-    let score = 0;
-    for (const answer of submission.answers) {
-      const question = assignment.questions.find(
-        (q) => q._id?.toString() === answer.questionId.toString()
-      );
-      if (question && question.correctAnswer !== undefined) {
-        if (
-          question.type === "multiple_choice" ||
-          question.type === "true_false"
-        ) {
-          if (answer.answer === question.correctAnswer) {
-            score += question.points;
+    // Check if instructor owns the course
+    const course = await CourseModel.findById(assignment.courseId.toString());
+    if (!course || course.instructorId.toString() !== instructorId) {
+      throw new Error("Only the course instructor can auto-grade this submission");
+    }
+
+    // Check if assignment has any auto-gradable questions
+    const autoGradableQuestions = assignment.questions.filter(
+      (q) => (q.type === "multiple_choice" || q.type === "true_false") && 
+             q.correctAnswer !== undefined && 
+             q.correctAnswer !== null
+    );
+
+    if (autoGradableQuestions.length === 0) {
+      throw new Error("This assignment has no auto-gradable questions (only multiple choice and true/false questions with correct answers can be auto-graded)");
+    }
+
+    // Calculate score for auto-gradable questions only
+    let autoGradedScore = 0;
+    let autoGradedQuestionIds: string[] = [];
+    let manualGradingRequired: string[] = [];
+
+    for (const question of assignment.questions) {
+      const isAutoGradable = (question.type === "multiple_choice" || question.type === "true_false") && 
+                           question.correctAnswer !== undefined && 
+                           question.correctAnswer !== null;
+
+      if (isAutoGradable) {
+        // Find student's answer for this question
+        const studentAnswer = submission.answers.find(
+          (answer) => answer.questionId.toString() === question._id?.toString()
+        );
+
+        if (studentAnswer) {
+          // Compare answers
+          let isCorrect = false;
+          if (question.type === "multiple_choice") {
+            isCorrect = studentAnswer.answer === question.correctAnswer;
+          } else if (question.type === "true_false") {
+            // Convert to boolean for comparison
+            const studentBoolAnswer = studentAnswer.answer === "true" || studentAnswer.answer === "True" || studentAnswer.answer === 1;
+            const correctBoolAnswer = question.correctAnswer === "true" || question.correctAnswer === "True" || question.correctAnswer === true || question.correctAnswer === 1;
+            isCorrect = studentBoolAnswer === correctBoolAnswer;
           }
+
+          if (isCorrect) {
+            autoGradedScore += question.points;
+          }
+          autoGradedQuestionIds.push(question._id?.toString() || "");
         }
+      } else {
+        // Essay questions or questions without correct answers need manual grading
+        manualGradingRequired.push(question._id?.toString() || "");
       }
     }
 
+    // Generate feedback
+    const totalAutoGradablePoints = autoGradableQuestions.reduce((sum, q) => sum + q.points, 0);
+    let feedback = `Auto-graded: ${autoGradedScore}/${totalAutoGradablePoints} points from ${autoGradableQuestions.length} auto-gradable questions.`;
+    
+    if (manualGradingRequired.length > 0) {
+      feedback += ` ${manualGradingRequired.length} question(s) require manual grading.`;
+    }
+
+    console.log("Auto-grading results:", {
+      submissionId,
+      autoGradedScore,
+      totalAutoGradablePoints,
+      autoGradedQuestions: autoGradedQuestionIds.length,
+      manualGradingRequired: manualGradingRequired.length,
+      feedback
+    });
+
     return await this.gradeSubmission(
       submissionId,
-      { score, feedback: "Auto-graded" },
+      { score: autoGradedScore, feedback },
       instructorId
     );
+  }
+
+  static async canAutoGrade(assignmentId: string): Promise<{
+    canAutoGrade: boolean;
+    autoGradableQuestions: number;
+    totalQuestions: number;
+    manualGradingRequired: number;
+  }> {
+    if (!isValidObjectId(assignmentId)) {
+      throw new Error(`Invalid assignment ID format: ${assignmentId}`);
+    }
+
+    const assignment = await AssignmentModel.findById(assignmentId);
+    if (!assignment) {
+      throw new Error("Assignment not found");
+    }
+
+    const autoGradableQuestions = assignment.questions.filter(
+      (q) => (q.type === "multiple_choice" || q.type === "true_false") && 
+             q.correctAnswer !== undefined && 
+             q.correctAnswer !== null
+    );
+
+    const manualGradingRequired = assignment.questions.length - autoGradableQuestions.length;
+
+    return {
+      canAutoGrade: autoGradableQuestions.length > 0,
+      autoGradableQuestions: autoGradableQuestions.length,
+      totalQuestions: assignment.questions.length,
+      manualGradingRequired
+    };
   }
 
   static async getAssignmentsByInstructor(
@@ -434,13 +483,11 @@ export class AssignmentService {
       throw new Error("Assignment ID and Student ID are required");
     }
 
-    // Check if assignment exists
     const assignment = await AssignmentModel.findById(assignmentId);
     if (!assignment) {
       throw new Error("Assignment not found");
     }
 
-    // Check if submission exists
     const submission = await AssignmentModel.findSubmission(
       assignmentId,
       studentId
@@ -460,12 +507,10 @@ export class AssignmentService {
       throw new Error("Submission ID is required");
     }
 
-    // Validate ObjectId format
     if (!/^[0-9a-fA-F]{24}$/.test(submissionId)) {
       throw new Error("Invalid submission ID format");
     }
 
-    // Get submission with populated assignment and student info
     const submission = await AssignmentModel.getSubmissionDetailById(
       submissionId
     );
@@ -473,7 +518,6 @@ export class AssignmentService {
       throw new Error("Submission not found");
     }
 
-    // Extract assignment from populated data or get assignment ID
     let assignment: any;
     let assignmentId: string;
 
@@ -481,11 +525,9 @@ export class AssignmentService {
       typeof submission.assignmentId === "object" &&
       submission.assignmentId._id
     ) {
-      // assignmentId is populated
       assignment = submission.assignmentId;
       assignmentId = assignment._id.toString();
     } else {
-      // assignmentId is just an ID
       assignmentId = submission.assignmentId.toString();
       assignment = await AssignmentModel.findById(assignmentId);
       if (!assignment) {
@@ -493,13 +535,11 @@ export class AssignmentService {
       }
     }
 
-    // Check if instructor owns the course
     const course = await CourseModel.findById(assignment.courseId.toString());
     if (!course || course.instructorId.toString() !== instructorId) {
       throw new Error("Only the course instructor can view submission details");
     }
 
-    // Combine submission answers with assignment questions
     const detailedAnswers = submission.answers.map((answer: any) => {
       const question = assignment.questions.find(
         (q: any) => q._id.toString() === answer.questionId.toString()
@@ -513,7 +553,6 @@ export class AssignmentService {
             isCorrect = answer.answer === question.correctAnswer;
             break;
           case "essay":
-            // Essay questions can't be auto-graded
             isCorrect = null;
             break;
         }
